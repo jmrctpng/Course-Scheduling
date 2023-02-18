@@ -1,4 +1,30 @@
-from typing import List, Tuple
+from typing import List, Tuple, Any
+import random
+
+
+class GeneticAlgorithm:
+
+    @staticmethod
+    def encode_chromosome() -> list[Any]:
+        """
+        Randomly select one item from each population list and create a new chromosome
+        list containing those four items. The for loop iterates over the length of
+        self.course_population and creates one chromosome for each course.
+        """
+        population = []
+        population_class = Population()
+
+        for i in range(len(population_class.courses)):
+            class_slot = population_class.class_slot.pop(random.randrange(len(population_class.class_slot)))
+            course = population_class.courses.pop(random.randrange(len(population_class.courses)))
+            block = population_class.blocks.pop(random.randrange(len(population_class.blocks)))
+            professor = population_class.professors.pop(random.randrange(len(population_class.professors)))
+
+            chromosome = [class_slot, course, block, professor]
+
+            population.append(chromosome)
+
+        return population
 
 
 class ClassRoom:
@@ -65,17 +91,13 @@ class Program:
 
 class Population:
     population = []
-    course_population: List[str] = []
-    block_population = []
-    professor_population = []
-    class_slot_population = []
+    courses: List[str] = []
+    blocks = []
+    professors = []
+    class_slot = []
 
     @staticmethod
     def createPopulation(classSlot, professor, course, block):
-        pass
-
-    @staticmethod
-    def encode_chromosome(self):
         pass
 
     def generate_course_population(self):
@@ -84,7 +106,7 @@ class Population:
 
         for room in available_rooms:
             for course in room[3]:
-                self.course_population.append(course)
+                self.courses.append(course)
 
     def generate_block_population(self):
         block = Program()
@@ -92,18 +114,18 @@ class Population:
 
         for room in available_rooms:
             for i in range(len(room[3])):
-                self.block_population.append(room[i][0])
+                self.blocks.append(room[i][0])
 
     def generate_prof_population(self):
         professor = Professor()
 
         for prof in professor.professors:
             for i in range(len(prof[1])):
-                self.professor_population.append(prof[0])
+                self.professors.append(prof[0])
 
     def generate_class_slot_population(self, meetingTime, day):
         class_slot = labRoomMapping(meetingTime, day) + regRoomMapping(day)
-        self.class_slot_population.append(class_slot)
+        self.class_slot.append(class_slot)
 
     def getPopulation(self):
         return self.population
@@ -177,22 +199,34 @@ if __name__ == '__main__':
 
     available_course = Course()
     available_course.add_lab_course("CS 121", 2, 3, ["Sl1", "SL2", "SL3"])
-    available_course.add_lab_course("IT 221", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("IT 221", 2, 3,
+                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                                     "ML", "ITL", "EDL", "401", "402", "403"])
     available_course.add_lab_course("CS 222", 2, 3, ["SL1", "SL2", "SL3", "ML"])
     available_course.add_lab_course("CS 221", 2, 3, ["SL1", "SL2", "SL3", "ML"])
     available_course.add_lab_course("CS 322", 2, 3, ["SL1", "SL2", "SL3"])
-    available_course.add_lab_course("CS 324", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
-    available_course.add_lab_course("CSE 401", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("CS 324", 2, 3,
+                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                                     "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("CSE 401", 2, 3,
+                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                                     "ML", "ITL", "EDL", "401", "402", "403"])
     available_course.add_lab_course("CS 422", 2, 3, ["ML"])
     available_course.add_lab_course("IT 323", 2, 3, ["ML"])
     available_course.add_lab_course("CSE 403", 2, 3, ["ML"])
     available_course.add_lab_course("CS 111", 2, 3, ["SL1", "SL2", "SL3", "ML"])
-    available_course.add_lab_course("IT 221", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("IT 221", 2, 3,
+                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                                     "ML", "ITL", "EDL", "401", "402", "403"])
     available_course.add_lab_course("IT 223", 2, 3, ["CISCO"])
-    available_course.add_lab_course("IT 222", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("IT 222", 2, 3,
+                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                                     "ML", "ITL", "EDL", "401", "402", "403"])
     available_course.add_lab_course("NTT 403", 2, 3, ["CISCO"])
     available_course.add_lab_course("NTT 404", 2, 3, ["CISCO"])
-    available_course.add_lab_course("IT 322", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
-    available_course.add_lab_course("IT 323", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
-
-
+    available_course.add_lab_course("IT 322", 2, 3,
+                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                                     "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("IT 323", 2, 3,
+                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                                     "ML", "ITL", "EDL", "401", "402", "403"])
