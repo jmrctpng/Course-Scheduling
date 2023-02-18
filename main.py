@@ -177,34 +177,22 @@ if __name__ == '__main__':
 
     available_course = Course()
     available_course.add_lab_course("CS 121", 2, 3, ["Sl1", "SL2", "SL3"])
-    available_course.add_lab_course("IT 221", 2, 3,
-                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                                     "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("IT 221", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
     available_course.add_lab_course("CS 222", 2, 3, ["SL1", "SL2", "SL3", "ML"])
     available_course.add_lab_course("CS 221", 2, 3, ["SL1", "SL2", "SL3", "ML"])
     available_course.add_lab_course("CS 322", 2, 3, ["SL1", "SL2", "SL3"])
-    available_course.add_lab_course("CS 324", 2, 3,
-                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                                     "ML", "ITL", "EDL", "401", "402", "403"])
-    available_course.add_lab_course("CSE 401", 2, 3,
-                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                                     "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("CS 324", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("CSE 401", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
     available_course.add_lab_course("CS 422", 2, 3, ["ML"])
     available_course.add_lab_course("IT 323", 2, 3, ["ML"])
     available_course.add_lab_course("CSE 403", 2, 3, ["ML"])
     available_course.add_lab_course("CS 111", 2, 3, ["SL1", "SL2", "SL3", "ML"])
-    available_course.add_lab_course("IT 221", 2, 3,
-                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                                     "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("IT 221", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
     available_course.add_lab_course("IT 223", 2, 3, ["CISCO"])
-    available_course.add_lab_course("IT 222", 2, 3,
-                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                                     "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("IT 222", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
     available_course.add_lab_course("NTT 403", 2, 3, ["CISCO"])
     available_course.add_lab_course("NTT 404", 2, 3, ["CISCO"])
-    available_course.add_lab_course("IT 322", 2, 3,
-                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                                     "ML", "ITL", "EDL", "401", "402", "403"])
-    available_course.add_lab_course("IT 323", 2, 3,
-                                    ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                                     "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("IT 322", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
+    available_course.add_lab_course("IT 323", 2, 3, ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO", "ML", "ITL", "EDL", "401", "402", "403"])
+
+
