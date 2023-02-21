@@ -17,12 +17,12 @@ class Data:
         Data.lab_course.append(course)
 
     @staticmethod
-    def add_lab_room(code: str, capacity: int):
-        Data.lab_room.append((code, capacity))
+    def add_lab_room(room):
+        Data.lab_room.append(room)
 
     @staticmethod
-    def add_reg_room(code: str, capacity: int):
-        Data.reg_room.append((code, capacity))
+    def add_reg_room(room):
+        Data.reg_room.append(room)
 
 
 class GeneticAlgorithm:
@@ -63,6 +63,12 @@ class Gene:
     def get_class_slot(self):
         return self.class_sot
 
+    def get_class_slot_one(self, index):
+        return self.class_sot[index]
+
+    def get_class_slot_two(self, index1, index2):
+        return self.class_sot[index1][index2]
+
     def get_course(self):
         return self.course
 
@@ -82,13 +88,13 @@ class GeneFitness:
         self.gene = gene
 
     def classroom_capacity(self):
-        if self.gene.block().get_enrolled_students() <= self.gene.class_slot()[0].get_capacity():
+        if self.gene.block().get_enrolled_students() <= self.gene.get_class_slot_one(0).get_capacity():
             return 1
         else:
             return 0
 
     def professor_work_load(self):
-        day = self.gene.get_class_slot()[1]
+        day = self.gene.get_class_slot_one(1)
         day_sched = []
         schedule = self.gene.professor.get_schedule()
 
@@ -105,11 +111,34 @@ class GeneFitness:
         elif day == 'S':
             day_sched = schedule.get_saturday()
 
-        result = has_overlap(self.gene.class_slot[2][0], day_sched)
+        result = has_overlap(self.gene.get_class_slot_two(2, 0), day_sched)
 
         return -1 if result else 0
 
     def schedule_availability(self):
+        pass
+
+    def room_suitability(self):
+        room = self.gene.get_class_slot_two(0, 0)
+        available_rooms = self.gene.course.get_available_rooms()
+
+        if room in available_rooms:
+            return 1
+        else:
+            return 0
+
+    def first_year(self):
+        if self.gene.course.get_year() == 1:
+            if self.gene.get_class_slot_one(1) != 'S':
+                return 1
+            else:
+                return 0
+
+    def lunch_breaks(self):
+        prof_sched = self.gene.get_professor().get_schedule()
+        time_slot = self.gene.get_class_slot_one(2)
+
+    def maximum_working_hours(self):
         pass
 
 
@@ -129,15 +158,17 @@ class ClassRoom:
     def get_schedule(self):
         return self.schedule
 
+
 class Course:
     lab_courses = []
     reg_courses = []
 
-    def __init__(self, code, lab_hours, lecture_hours, available_rooms):
+    def __init__(self, code, lab_hours, lecture_hours, available_rooms, year):
         self.code = code
         self.lab_hours = lab_hours
         self.lecture_hours = lecture_hours
         self.available_rooms = available_rooms
+        self.year = year
 
     def get_code(self):
         return self.code()
@@ -148,18 +179,11 @@ class Course:
     def get_lecture_hours(self):
         return self.lecture_hours()
 
-    # --------------------------------------------------------------------------------------------------
+    def get_available_rooms(self):
+        return self.available_rooms
 
-    @staticmethod
-    def add_lab_course(course_code: str, lab_hours: int, lecture_hours: int, available_rooms: List[str]):
-        course = [course_code, [lab_hours, lecture_hours], available_rooms]
-        Course.lab_courses.append(course)
-
-    @staticmethod
-    def add_reg_course(course_code: str, lab_hours: int, lecture_hours: int, available_rooms: List[str]):
-        course = [course_code, [lab_hours, lecture_hours], available_rooms]
-        Course.reg_courses.append(course)
-
+    def get_year(self):
+        return self.year
 
 class Schedule:
     def __init__(self):
@@ -224,19 +248,14 @@ class Professor:
     def get_schedule(self):
         return self.schedule()
 
-    # -------------------------------------------------
-    @staticmethod
-    def add_prof(prof_id: str, course_code_handle: str):
-        element = [prof_id, course_code_handle]
-        Professor.professors.append(element)
-
 
 class Program:
 
-    def __init__(self, block_code, enrolled_students, courses):
+    def __init__(self, block_code, enrolled_students, courses, schedule):
         self.block_code = block_code
         self.enrolled_students = enrolled_students
         self.courses = courses
+        self.schedule = schedule
 
     def get_block_code(self):
         return self.block_code
@@ -246,6 +265,9 @@ class Program:
 
     def get_courses(self):
         return self.courses
+
+    def get_schedule(self):
+        return self.schedule
 
 
 class Population:
@@ -261,26 +283,26 @@ class Population:
 
     def generate_course_population(self):
         block = Data()
-        available_rooms = block.comp_science + block.info_technology
+        available_course = block.comp_science + block.info_technology
 
-        for room in available_rooms:
-            for course in room[3]:
+        for b in available_course:
+            for course in b.get_courses():
                 self.courses.append(course)
 
     def generate_block_population(self):
         block = Data()
-        available_rooms = block.comp_science + block.info_technology
+        available_blocks = block.comp_science + block.info_technology
 
-        for room in available_rooms:
-            for i in range(len(room[3])):
-                self.blocks.append(room[i][0])
+        for b in available_blocks:
+            for i in range(len(b.get_courses())):
+                self.blocks.append(b.get_block_code())
 
     def generate_prof_population(self):
         professor = Data()
 
         for prof in professor.professor:
-            for i in range(len(prof[1])):
-                self.professors.append(prof[0])
+            for i in range(len(prof.get_course_code_handle())):
+                self.professors.append(prof.get_prof_id())
 
     def generate_class_slot_population(self, meetingTime, day):
         class_slot = labRoomMapping(meetingTime, day) + regRoomMapping(day)
@@ -337,7 +359,7 @@ def has_overlap(time_slot, schedule):
     for slot in time_slot:
         for i, time in enumerate(schedule):
             if slot[0] in time and i < len(schedule) - len(slot) + 1:
-                if all(slot[j] == schedule[i+j] for j in range(1, len(slot))):
+                if all(slot[j] == schedule[i + j] for j in range(1, len(slot))):
                     return True
     return False
 
@@ -366,33 +388,33 @@ if __name__ == '__main__':
 
     Data.add_lab_course("CS 121", 2, 3, ["Sl1", "SL2", "SL3"])
     Data.add_lab_course("IT 221", 2, 3,
-                          ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                           "ML", "ITL", "EDL", "401", "402", "403"])
+                        ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                         "ML", "ITL", "EDL", "401", "402", "403"])
     Data.add_lab_course("CS 222", 2, 3, ["SL1", "SL2", "SL3", "ML"])
     Data.add_lab_course("CS 221", 2, 3, ["SL1", "SL2", "SL3", "ML"])
     Data.add_lab_course("CS 322", 2, 3, ["SL1", "SL2", "SL3"])
     Data.add_lab_course("CS 324", 2, 3,
-                          ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                           "ML", "ITL", "EDL", "401", "402", "403"])
+                        ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                         "ML", "ITL", "EDL", "401", "402", "403"])
     Data.add_lab_course("CSE 401", 2, 3,
-                          ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                           "ML", "ITL", "EDL", "401", "402", "403"])
+                        ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                         "ML", "ITL", "EDL", "401", "402", "403"])
     Data.add_lab_course("CS 422", 2, 3, ["ML"])
     Data.add_lab_course("IT 323", 2, 3, ["ML"])
     Data.add_lab_course("CSE 403", 2, 3, ["ML"])
     Data.add_lab_course("CS 111", 2, 3, ["SL1", "SL2", "SL3", "ML"])
     Data.add_lab_course("IT 221", 2, 3,
-                          ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                           "ML", "ITL", "EDL", "401", "402", "403"])
+                        ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                         "ML", "ITL", "EDL", "401", "402", "403"])
     Data.add_lab_course("IT 223", 2, 3, ["CISCO"])
     Data.add_lab_course("IT 222", 2, 3,
-                          ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                           "ML", "ITL", "EDL", "401", "402", "403"])
+                        ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                         "ML", "ITL", "EDL", "401", "402", "403"])
     Data.add_lab_course("NTT 403", 2, 3, ["CISCO"])
     Data.add_lab_course("NTT 404", 2, 3, ["CISCO"])
     Data.add_lab_course("IT 322", 2, 3,
-                          ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                           "ML", "ITL", "EDL", "401", "402", "403"])
+                        ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                         "ML", "ITL", "EDL", "401", "402", "403"])
     Data.add_lab_course("IT 323", 2, 3,
-                          ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
-                           "ML", "ITL", "EDL", "401", "402", "403"])
+                        ["101", "102", "103", "104", "201", "202", "203", "SL1", "SL2", "SL3", "CISCO",
+                         "ML", "ITL", "EDL", "401", "402", "403"])
