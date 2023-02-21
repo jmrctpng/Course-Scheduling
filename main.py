@@ -17,12 +17,72 @@ class Data:
         Data.lab_course.append(course)
 
     @staticmethod
-    def add_lab_room(room):
-        Data.lab_room.append(room)
+    def add_room(room, type_of_room):
+        if type_of_room == "Regular":
+            Data.reg_room.append(room)
+        else:
+            Data.lab_room.append(room)
 
     @staticmethod
-    def add_reg_room(room):
-        Data.reg_room.append(room)
+    def find_prof(prof_id):
+        for prof in Data.professor:
+            if prof.get_prof_id() == prof_id:
+                return prof
+        return None
+
+    @staticmethod
+    def find_room(room_id, type_of_room):
+        rooms = Data.reg_room if type_of_room == "Regular" else Data.lab_room
+        for room in rooms:
+            if room.get_code() == room_id:
+                return room
+        return None
+
+
+class Schedule:
+    def __init__(self):
+        self.monday = []
+        self.tuesday = []
+        self.wednesday = []
+        self.thursday = []
+        self.friday = []
+        self.saturday = []
+
+    def get_monday(self):
+        return self.monday
+
+    def set_monday(self, monday):
+        self.monday = monday
+
+    def get_tuesday(self):
+        return self.tuesday
+
+    def set_tuesday(self, tuesday):
+        self.tuesday = tuesday
+
+    def get_wednesday(self):
+        return self.wednesday
+
+    def set_wednesday(self, wednesday):
+        self.wednesday = wednesday
+
+    def get_thursday(self):
+        return self.thursday
+
+    def set_thursday(self, thursday):
+        self.thursday = thursday
+
+    def get_friday(self):
+        return self.friday
+
+    def set_friday(self, friday):
+        self.friday = friday
+
+    def get_saturday(self):
+        return self.saturday
+
+    def set_saturday(self, saturday):
+        self.saturday = saturday
 
 
 class GeneticAlgorithm:
@@ -37,6 +97,7 @@ class GeneticAlgorithm:
         """
 
         population_class = Population()
+        data = Data()
 
         for i in range(len(population_class.courses)):
             class_slot = population_class.class_slots.pop(random.randrange(len(population_class.class_slots)))
@@ -45,6 +106,14 @@ class GeneticAlgorithm:
             professor = population_class.professors.pop(random.randrange(len(population_class.professors)))
 
             gene = Gene(class_slot, course, block, professor)
+
+            found_prof = data.find_prof(professor)
+            if found_prof is not None:
+                found_prof.set_schedule(class_slot)
+
+            found_room = data.find_room(class_slot[0].get_code(), class_slot[0].type_of_room())
+            if found_room is not None:
+                found_room.set_schedule(class_slot)
 
             GeneticAlgorithm.chromosome.append(gene)
 
@@ -119,7 +188,7 @@ class GeneFitness:
         pass
 
     def room_suitability(self):
-        room = self.gene.get_class_slot_two(0, 0)
+        room = self.gene.get_class_slot_one(0, 0)
         available_rooms = self.gene.course.get_available_rooms()
 
         if room in available_rooms:
@@ -143,11 +212,12 @@ class GeneFitness:
 
 
 class ClassRoom:
+    schedule = Schedule()
 
-    def __init__(self, code, capacity, schedule):
+    def __init__(self, code, capacity, type_of_room):
         self.code = code
         self.capacity = capacity
-        self.schedule = schedule
+        self.type_of_room = type_of_room
 
     def get_code(self):
         return self.code
@@ -158,10 +228,24 @@ class ClassRoom:
     def get_schedule(self):
         return self.schedule
 
+    def set_schedule(self, day, meeting_time):
+        day_to_method = {
+            'M': self.schedule.set_monday,
+            'T': self.schedule.set_tuesday,
+            'W': self.schedule.set_wednesday,
+            'Th': self.schedule.set_thursday,
+            'F': self.schedule.set_friday,
+            'S': self.schedule.set_saturday,
+        }
+        set_method = day_to_method.get(day)
+        if set_method is not None:
+            set_method(meeting_time)
+
+    def get_type_of_room(self):
+        return self.type_of_room
+
 
 class Course:
-    lab_courses = []
-    reg_courses = []
 
     def __init__(self, code, lab_hours, lecture_hours, available_rooms, year):
         self.code = code
@@ -185,59 +269,13 @@ class Course:
     def get_year(self):
         return self.year
 
-class Schedule:
-    def __init__(self):
-        self.monday = []
-        self.tuesday = []
-        self.wednesday = []
-        self.thursday = []
-        self.friday = []
-        self.saturday = []
-
-    def get_monday(self):
-        return self.monday
-
-    def set_monday(self, monday):
-        self.monday = monday
-
-    def get_tuesday(self):
-        return self.tuesday
-
-    def set_tuesday(self, tuesday):
-        self.tuesday = tuesday
-
-    def get_wednesday(self):
-        return self.wednesday
-
-    def set_wednesday(self, wednesday):
-        self.wednesday = wednesday
-
-    def get_thursday(self):
-        return self.thursday
-
-    def set_thursday(self, thursday):
-        self.thursday = thursday
-
-    def get_friday(self):
-        return self.friday
-
-    def set_friday(self, friday):
-        self.friday = friday
-
-    def get_saturday(self):
-        return self.saturday
-
-    def set_saturday(self, saturday):
-        self.saturday = saturday
-
 
 class Professor:
-    professors = []
+    schedule = []
 
-    def __init__(self, prof_id, course_code_handle, schedule):
+    def __init__(self, prof_id, course_code_handle):
         self.prof_id = prof_id
         self.course_code_handle = course_code_handle
-        self.schedule = schedule
 
     def get_prof_id(self):
         return self.prof_id()
@@ -246,16 +284,19 @@ class Professor:
         return self.course_code_handle()
 
     def get_schedule(self):
-        return self.schedule()
+        return self.schedule
+
+    def set_schedule(self, time_slot):
+        self.schedule.append(time_slot)
 
 
-class Program:
+class Block:
+    schedule = []
 
-    def __init__(self, block_code, enrolled_students, courses, schedule):
+    def __init__(self, block_code, enrolled_students, courses):
         self.block_code = block_code
         self.enrolled_students = enrolled_students
         self.courses = courses
-        self.schedule = schedule
 
     def get_block_code(self):
         return self.block_code
@@ -268,6 +309,17 @@ class Program:
 
     def get_schedule(self):
         return self.schedule
+
+    def set_schedule(self, time_slot):
+        self.schedule.append(time_slot)
+
+
+class Chromosome:
+    def __init__(self, gene):
+        self.gene = gene
+
+    def get_gene(self):
+        return self.gene
 
 
 class Population:
