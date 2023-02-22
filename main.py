@@ -38,51 +38,47 @@ class Data:
                 return room
         return None
 
+    @staticmethod
+    def set_schedule(obj, day, meeting_time):
+        if isinstance(obj, ClassRoom) or isinstance(obj, Block):
+            schedule = obj.get_schedule()
+            if day == 'M':
+                schedule.set_monday(meeting_time)
+            elif day == 'T':
+                schedule.set_tuesday(meeting_time)
+            elif day == 'W':
+                schedule.set_wednesday(meeting_time)
+            elif day == 'Th':
+                schedule.set_thursday(meeting_time)
+            elif day == 'F':
+                schedule.set_friday(meeting_time)
+            elif day == 'S':
+                schedule.set_saturday(meeting_time)
+        else:
+            print("Cannot set schedule for this object.")
+
 
 class Schedule:
     def __init__(self):
-        self.monday = []
-        self.tuesday = []
-        self.wednesday = []
-        self.thursday = []
-        self.friday = []
-        self.saturday = []
+        self.schedule = {
+            'M': [],
+            'T': [],
+            'W': [],
+            'Th': [],
+            'F': [],
+            'S': []
+        }
 
-    def get_monday(self):
-        return self.monday
+    def set_schedule(self, day, time):
+        blocks = self.schedule[day]
+        blocks.append(time)
+        self.schedule[day] = blocks
 
-    def set_monday(self, monday):
-        self.monday = monday
+    def get_schedule(self, day):
+        return self.schedule[day]
 
-    def get_tuesday(self):
-        return self.tuesday
-
-    def set_tuesday(self, tuesday):
-        self.tuesday = tuesday
-
-    def get_wednesday(self):
-        return self.wednesday
-
-    def set_wednesday(self, wednesday):
-        self.wednesday = wednesday
-
-    def get_thursday(self):
-        return self.thursday
-
-    def set_thursday(self, thursday):
-        self.thursday = thursday
-
-    def get_friday(self):
-        return self.friday
-
-    def set_friday(self, friday):
-        self.friday = friday
-
-    def get_saturday(self):
-        return self.saturday
-
-    def set_saturday(self, saturday):
-        self.saturday = saturday
+    def get_all_schedules(self):
+        return self.schedule
 
 
 class GeneticAlgorithm:
@@ -228,19 +224,6 @@ class ClassRoom:
     def get_schedule(self):
         return self.schedule
 
-    def set_schedule(self, day, meeting_time):
-        day_to_method = {
-            'M': self.schedule.set_monday,
-            'T': self.schedule.set_tuesday,
-            'W': self.schedule.set_wednesday,
-            'Th': self.schedule.set_thursday,
-            'F': self.schedule.set_friday,
-            'S': self.schedule.set_saturday,
-        }
-        set_method = day_to_method.get(day)
-        if set_method is not None:
-            set_method(meeting_time)
-
     def get_type_of_room(self):
         return self.type_of_room
 
@@ -291,7 +274,7 @@ class Professor:
 
 
 class Block:
-    schedule = []
+    schedule = Schedule()
 
     def __init__(self, block_code, enrolled_students, courses):
         self.block_code = block_code
@@ -309,9 +292,6 @@ class Block:
 
     def get_schedule(self):
         return self.schedule
-
-    def set_schedule(self, time_slot):
-        self.schedule.append(time_slot)
 
 
 class Chromosome:
