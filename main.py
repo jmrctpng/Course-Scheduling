@@ -38,25 +38,6 @@ class Data:
                 return room
         return None
 
-    @staticmethod
-    def set_schedule(obj, day, meeting_time):
-        if isinstance(obj, ClassRoom) or isinstance(obj, Block):
-            schedule = obj.get_schedule()
-            if day == 'M':
-                schedule.set_monday(meeting_time)
-            elif day == 'T':
-                schedule.set_tuesday(meeting_time)
-            elif day == 'W':
-                schedule.set_wednesday(meeting_time)
-            elif day == 'Th':
-                schedule.set_thursday(meeting_time)
-            elif day == 'F':
-                schedule.set_friday(meeting_time)
-            elif day == 'S':
-                schedule.set_saturday(meeting_time)
-        else:
-            print("Cannot set schedule for this object.")
-
 
 class Schedule:
     def __init__(self):
@@ -105,11 +86,11 @@ class GeneticAlgorithm:
 
             found_prof = data.find_prof(professor)
             if found_prof is not None:
-                found_prof.set_schedule(class_slot)
+                found_prof.schedule.set_schedule(class_slot[1], class_slot[2])
 
             found_room = data.find_room(class_slot[0].get_code(), class_slot[0].type_of_room())
             if found_room is not None:
-                found_room.set_schedule(class_slot)
+                found_room.schedule.set_schedule(class_slot[1], class_slot[2])
 
             GeneticAlgorithm.chromosome.append(gene)
 
@@ -141,7 +122,7 @@ class Gene:
         return self.block
 
     def get_professor(self):
-        return self.professor()
+        return self.professor
 
     def get_fitness_score(self):
         pass
@@ -153,28 +134,16 @@ class GeneFitness:
         self.gene = gene
 
     def classroom_capacity(self):
-        if self.gene.block().get_enrolled_students() <= self.gene.get_class_slot_one(0).get_capacity():
+        if self.gene.block.get_enrolled_students() <= self.gene.get_class_slot_one(0).get_capacity():
             return 1
         else:
             return 0
 
     def professor_work_load(self):
         day = self.gene.get_class_slot_one(1)
-        day_sched = []
         schedule = self.gene.professor.get_schedule()
 
-        if day == 'M':
-            day_sched = schedule.get_monday()
-        elif day == 'T':
-            day_sched = schedule.get_tuesday()
-        elif day == 'W':
-            day_sched = schedule.get_wednesday()
-        elif day == 'Th':
-            day_sched = schedule.get_thursday()
-        elif day == 'F':
-            day_sched = schedule.get_friday()
-        elif day == 'S':
-            day_sched = schedule.get_saturday()
+        day_sched = getattr(schedule, f'get_{day.lower()}')()
 
         result = has_overlap(self.gene.get_class_slot_two(2, 0), day_sched)
 
