@@ -38,6 +38,16 @@ class Data:
                 return room
         return None
 
+    @staticmethod
+    def find_block(block_code):
+        blocks = Data.info_technology + Data.comp_science
+
+        for block in blocks:
+            if block.get_block_code() == block_code:
+                return block
+
+        return None
+
 
 class Schedule:
     def __init__(self):
@@ -63,10 +73,11 @@ class Schedule:
 
 
 class GeneticAlgorithm:
-    chromosome = []
 
-    @staticmethod
-    def encode_chromosome() -> list[Any]:
+    def __init__(self):
+        self.chromosome = Chromosome()
+
+    def encode_chromosome(self):
         """
         Randomly select one item from each population list and create a new chromosome
         list containing those four items. The for loop iterates over the length of
@@ -76,8 +87,6 @@ class GeneticAlgorithm:
         population_class = Population()
         data = Data()
 
-        chromosome = Chromosome()
-
         for i in range(len(population_class.courses)):
             class_slot = population_class.class_slots.pop(random.randrange(len(population_class.class_slots)))
             course = population_class.courses.pop(random.randrange(len(population_class.courses)))
@@ -86,21 +95,39 @@ class GeneticAlgorithm:
 
             gene = Gene(class_slot, course, block, professor)
 
+            # set schedule for professor
             found_prof = data.find_prof(professor)
             if found_prof is not None:
                 found_prof.schedule.set_schedule(class_slot[1], class_slot[2])
 
+            # set schedule for classroom
             found_room = data.find_room(class_slot[0].get_code(), class_slot[0].type_of_room())
             if found_room is not None:
                 found_room.schedule.set_schedule(class_slot[1], class_slot[2])
 
-            chromosome.add_gene(gene)
+            # set schedule for block
+            found_block = data.find_block(block.get_block_code())
+            if found_block is not None:
+                found_block.set_schedule(class_slot[1], class_slot[2])
 
-            return chromosome
+            self.chromosome.add_gene(gene)
 
-    @staticmethod
-    def calculate_fit():
+    def calculate_fit(self):
         pass
+
+    def roulette_wheel(self):
+        pass
+
+
+class Chromosome:
+    def __init__(self):
+        self.genes = []
+
+    def add_gene(self, gene):
+        self.genes.append(gene)
+
+    def get_genes(self):
+        return self.genes
 
 
 class Gene:
@@ -155,6 +182,35 @@ class GeneFitness:
 
     def schedule_availability(self):
         pass
+
+    def class_room_availability(self):
+        room = self.gene.get_class_slot_one(0,0)
+        schedule = room.get_schedule()
+
+        merged = []
+        for slot in schedule:
+            # Convert slot to a set of integers
+            slot_set = set(map(int, slot))
+            # Check if there are any merged slots that overlap with this slot
+            overlap_found = False
+            for merged_slot in merged:
+                # Convert merged_slot to a set of integers
+                merged_slot_set = set(map(int, merged_slot))
+                # Check if there is any overlap between slot_set and merged_slot_set
+                if len(slot_set & merged_slot_set) > 0:
+                    # Merge the two sets and update merged_slot
+                    merged_slot |= slot_set
+                    overlap_found = True
+                    break
+            # If no overlap was found, add slot to merged list as a new set
+            if not overlap_found:
+                merged.append(slot_set)
+        # Convert the sets in merged back to lists of strings
+        m = [list(map(str, s)) for s in merged]
+
+        return 12 - (sum(map(len, m)) - len(m))
+
+
 
     def room_suitability(self):
         room = self.gene.get_class_slot_one(0, 0)
@@ -211,12 +267,12 @@ class GeneFitness:
 
 
 class ClassRoom:
-    schedule = Schedule()
 
     def __init__(self, code, capacity, type_of_room):
         self.code = code
         self.capacity = capacity
         self.type_of_room = type_of_room
+        self.schedule = Schedule()
 
     def get_code(self):
         return self.code
@@ -272,8 +328,8 @@ class Professor:
     def get_schedule(self):
         return self.schedule
 
-    def set_schedule(self, time_slot):
-        self.schedule.append(time_slot)
+    def set_schedule(self, day, time_slot):
+        self.schedule.set_schedule(day, time_slot)
 
 
 class Block:
@@ -296,16 +352,8 @@ class Block:
     def get_schedule(self):
         return self.schedule
 
-
-class Chromosome:
-    def __init__(self):
-        self.genes = []
-
-    def add_gene(self, gene):
-        self.genes.append(gene)
-
-    def get_genes(self):
-        return self.genes
+    def set_schedule(self, day, time_slot):
+        self.schedule.set_schedule(day, time_slot)
 
 
 class Population:
