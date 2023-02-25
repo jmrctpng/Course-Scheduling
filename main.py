@@ -76,6 +76,8 @@ class GeneticAlgorithm:
         population_class = Population()
         data = Data()
 
+        chromosome = Chromosome()
+
         for i in range(len(population_class.courses)):
             class_slot = population_class.class_slots.pop(random.randrange(len(population_class.class_slots)))
             course = population_class.courses.pop(random.randrange(len(population_class.courses)))
@@ -92,7 +94,9 @@ class GeneticAlgorithm:
             if found_room is not None:
                 found_room.schedule.set_schedule(class_slot[1], class_slot[2])
 
-            GeneticAlgorithm.chromosome.append(gene)
+            chromosome.add_gene(gene)
+
+            return chromosome
 
     @staticmethod
     def calculate_fit():
@@ -168,9 +172,42 @@ class GeneFitness:
             else:
                 return 0
 
+    def has_lunch_break(self):
+
+        prof_sched_day = self.gene.get_class_slot_one(1)
+        professor_schedule = self.gene.professor.schedule.get_schedule(prof_sched_day)
+
+        # Get all the sublists that contain a number between 10 and 14
+        schedules = [schedule for schedule in professor_schedule if any(10 <= int(time) <= 14 for time in schedule)]
+
+        # Create a new list with a sublist that contains only two elements
+        relevant_sublists = []
+        for schedule in schedules:
+            for i in range(len(schedule) - 1):
+                sublist = [int(schedule[i]), int(schedule[i + 1])]
+                if 10 <= sublist[0] <= 14 and 10 <= sublist[1] <= 14:
+                    relevant_sublists.append(sublist)
+
+        # Sort the array
+        sorted_sublists = sorted(relevant_sublists)
+
+        # Check if the list of relevant sublists is a subset of the sorted list
+        return set([tuple(sublist) for sublist in [[10, 11], [11, 12], [12, 13], [13, 14]]]).issubset(
+            [tuple(sublist) for sublist in sorted_sublists])
+
     def lunch_breaks(self):
-        prof_sched = self.gene.get_professor().get_schedule()
-        time_slot = self.gene.get_class_slot_one(2)
+        prof_sched_day = self.gene.get_class_slot_one(1)
+        prof_sched = self.gene.professor.schedule.get_schedule(prof_sched_day)
+
+
+
+        return False
+
+
+
+
+
+
 
     def maximum_working_hours(self):
         pass
@@ -223,7 +260,7 @@ class Course:
 
 
 class Professor:
-    schedule = []
+    schedule = Schedule()
 
     def __init__(self, prof_id, course_code_handle):
         self.prof_id = prof_id
@@ -264,11 +301,14 @@ class Block:
 
 
 class Chromosome:
-    def __init__(self, gene):
-        self.gene = gene
+    def __init__(self):
+        self.genes = []
 
-    def get_gene(self):
-        return self.gene
+    def add_gene(self, gene):
+        self.genes.append(gene)
+
+    def get_genes(self):
+        return self.genes
 
 
 class Population:
