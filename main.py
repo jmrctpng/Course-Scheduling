@@ -195,22 +195,19 @@ class GeneFitness:
         return set([tuple(sublist) for sublist in [[10, 11], [11, 12], [12, 13], [13, 14]]]).issubset(
             [tuple(sublist) for sublist in sorted_sublists])
 
-    def lunch_breaks(self):
-        prof_sched_day = self.gene.get_class_slot_one(1)
-        prof_sched = self.gene.professor.schedule.get_schedule(prof_sched_day)
-
-
-
-        return False
-
-
-
-
-
-
-
     def maximum_working_hours(self):
-        pass
+        prof_sched_day = self.gene.get_class_slot_one(1)
+        professor_schedule = self.gene.professor.schedule.get_schedule(prof_sched_day)
+
+        total = 0
+        for sublist in professor_schedule:
+            length = len(sublist) - 1
+            total += length
+
+        if total > 8:
+            total = total - 8
+
+        return total
 
 
 class ClassRoom:
