@@ -181,36 +181,20 @@ class GeneFitness:
         return -1 if result else 0
 
     def schedule_availability(self):
-        pass
+        room = self.gene.get_class_slot_one(0, 0)
+        room_schedule = room.get_schedule()
 
-    def class_room_availability(self):
-        room = self.gene.get_class_slot_one(0,0)
-        schedule = room.get_schedule()
+        block_schedule = self.gene.block.get_schedule()
+        prof_schedule = self.gene.professor.get_schedule()
 
-        merged = []
-        for slot in schedule:
-            # Convert slot to a set of integers
-            slot_set = set(map(int, slot))
-            # Check if there are any merged slots that overlap with this slot
-            overlap_found = False
-            for merged_slot in merged:
-                # Convert merged_slot to a set of integers
-                merged_slot_set = set(map(int, merged_slot))
-                # Check if there is any overlap between slot_set and merged_slot_set
-                if len(slot_set & merged_slot_set) > 0:
-                    # Merge the two sets and update merged_slot
-                    merged_slot |= slot_set
-                    overlap_found = True
-                    break
-            # If no overlap was found, add slot to merged list as a new set
-            if not overlap_found:
-                merged.append(slot_set)
-        # Convert the sets in merged back to lists of strings
-        m = [list(map(str, s)) for s in merged]
+        room_availability = False if available_hours_in_schedule(room_schedule) > 0 else True
+        block_availability = False if available_hours_in_schedule(block_schedule) > 0 else True
+        prof_availability = False if available_hours_in_schedule(prof_schedule) > 0 else True
 
-        return 12 - (sum(map(len, m)) - len(m))
-
-
+        if room_availability and block_availability and prof_availability:
+            return 1
+        else:
+            return -1
 
     def room_suitability(self):
         room = self.gene.get_class_slot_one(0, 0)
@@ -313,11 +297,11 @@ class Course:
 
 
 class Professor:
-    schedule = Schedule()
 
     def __init__(self, prof_id, course_code_handle):
         self.prof_id = prof_id
         self.course_code_handle = course_code_handle
+        self.schedule = Schedule()
 
     def get_prof_id(self):
         return self.prof_id()
@@ -448,6 +432,31 @@ def has_overlap(time_slot, schedule):
                 if all(slot[j] == schedule[i + j] for j in range(1, len(slot))):
                     return True
     return False
+
+
+def available_hours_in_schedule(schedule):
+    merged = []
+    for slot in schedule:
+        # Convert slot to a set of integers
+        slot_set = set(map(int, slot))
+        # Check if there are any merged slots that overlap with this slot
+        overlap_found = False
+        for merged_slot in merged:
+            # Convert merged_slot to a set of integers
+            merged_slot_set = set(map(int, merged_slot))
+            # Check if there is any overlap between slot_set and merged_slot_set
+            if len(slot_set & merged_slot_set) > 0:
+                # Merge the two sets and update merged_slot
+                merged_slot |= slot_set
+                overlap_found = True
+                break
+        # If no overlap was found, add slot to merged list as a new set
+        if not overlap_found:
+            merged.append(slot_set)
+    # Convert the sets in merged back to lists of strings
+    m = [list(map(str, s)) for s in merged]
+
+    return 12 - (sum(map(len, m)) - len(m))
 
 
 if __name__ == '__main__':
