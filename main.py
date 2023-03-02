@@ -167,17 +167,26 @@ class GeneticAlgorithm:
         # calculate gene fitness score
         for gene in chromosome.get_genes():
             gene_fitness = GeneFitness(gene)
+            n = 10
+            first_year = 0
+
+            if gene_fitness.first_year() is None:
+                n = 9
+            else:
+                first_year = 1
+
+
             fitness_score = (
                 (
                     gene_fitness.classroom_capacity() +
                     gene_fitness.professor_work_load() +
                     gene_fitness.schedule_availability() +
                     gene_fitness.room_suitability() +
-                    gene_fitness.first_year() +
+                    first_year +
                     gene_fitness.block_lunch() +
                     gene_fitness.professor_lunch() +
                     gene_fitness.maximum_working_hours()
-                 )
+                 ) / n
             )
 
             gene.add_fitness_score(fitness_score)
@@ -193,7 +202,7 @@ class GeneticAlgorithm:
             print("PW :", gene.get_professor_availability_fitness())
             print("BA :", gene.get_block_availability_fitness())
             print("RS :", gene.get_room_suitability_fitness())
-            print("FF :", gene.get_first_year_fitness())
+            print("FF :", first_year)
             print("PL :", gene.get_prof_lunch_break_fitness())
             print("BL :", gene.get_block_lunch_break_fitness())
             print("WH :", gene.get_working_hours_fitness())
@@ -394,10 +403,10 @@ class GeneFitness:
                 return 1
             else:
                 self.gene.set_first_year_fitness(0)
-                return -1
+                return 0
         else:
             self.gene.set_first_year_fitness(None)
-            return 0
+            return None
 
     def professor_lunch(self):
         prof_sched_day = self.gene.get_class_slot_one(1)
