@@ -190,8 +190,7 @@ class GeneticAlgorithm:
             )
 
             gene.add_fitness_score(fitness_score)
-            print("Class slot: ", gene.class_slot[0].get_code(), " ", gene.class_slot[0].get_capacity(), " ", gene.class_slot[0].get_type_of_room())
-            print("Class slot: ", gene.class_slot[1], " ", gene.class_slot[2])
+            print("Class slot: ", gene.class_slot[0].get_code(), " ", gene.class_slot[0].get_capacity(), " ", gene.class_slot[0].get_type_of_room(), " ", gene.class_slot[1], " ", gene.class_slot[2])
             print("Course: ", gene.course)
             print("Professor: ", gene.professor.get_prof_id())
             print("Block: ", gene.block.get_block_code())
