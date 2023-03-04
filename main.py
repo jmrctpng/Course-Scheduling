@@ -407,16 +407,13 @@ class GeneFitness:
         day = self.gene.get_class_slot_one(1)
         schedule = self.gene.professor.get_schedule().get_schedule(day)
 
-        print("has :", self.gene.get_class_slot_one(2))
         print("sched :", schedule)
         result = has_overlap_and_multiple_copies(self.gene.get_class_slot_one(2), schedule)
 
         if result:
-            print("result1: ", result)
             self.gene.set_professor_work_load_fitness(0)
             return 0
         else:
-            print("result2: ", result)
             self.gene.set_professor_work_load_fitness(1)
             return 1
 
@@ -430,7 +427,7 @@ class GeneFitness:
         print("block schedule :", self.gene.block.get_schedule().get_schedule(day))
         print("prof schedule :", self.gene.professor.get_schedule().get_schedule(day))
 
-        print("has :", self.gene.get_class_slot_one(2))
+        print("time_clot :", self.gene.get_class_slot_one(2))
         room_availability = has_overlap_and_multiple_copies(self.gene.get_class_slot_one(2), room_schedule)
         block_availability = has_overlap_and_multiple_copies(self.gene.get_class_slot_one(2), block_schedule)
 
@@ -773,7 +770,6 @@ def has_overlap_and_multiple_copies(time_slots, pattern):
 
     # Remove duplicates of pattern
     pattern_copy = list(filter(lambda x: x != time_slots, pattern))
-    print(pattern_copy)
 
     if len(pattern_copy) > 0:
         #check for overlap in pattern
