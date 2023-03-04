@@ -130,11 +130,16 @@ class GeneticAlgorithm:
 
         data = Data()
 
+        print("CS size : ", len(population_class.get_class_slots()))
+        print("course size : ", len(population_class.get_courses()))
+        print("block size : ", len(population_class.get_blocks()))
+        print("prof size : ", len(population_class.get_professors()))
+
         for i in range(len(population_class.get_courses())):
-            class_slot = population_class.get_class_slots().pop(random.randrange(len(population_class.class_slots)))
-            course = population_class.get_courses().pop(random.randrange(len(population_class.courses)))
-            block = population_class.get_blocks().pop(random.randrange(len(population_class.blocks)))
-            professor = population_class.get_professors().pop(random.randrange(len(population_class.professors)))
+            class_slot = population_class.get_class_slots().pop(random.randrange(len(population_class.get_class_slots())))
+            course = population_class.get_courses().pop(random.randrange(len(population_class.get_courses())))
+            block = population_class.get_blocks().pop(random.randrange(len(population_class.get_blocks())))
+            professor = population_class.get_professors().pop(random.randrange(len(population_class.get_professors())))
 
             gene = Gene(class_slot, course, block, professor)
 
@@ -184,7 +189,7 @@ class GeneticAlgorithm:
                     gene_fitness.block_lunch() +
                     gene_fitness.professor_lunch() +
                     gene_fitness.maximum_working_hours()
-                ) / 10
+                ) / 9
             )
 
             gene.add_fitness_score(fitness_score)
@@ -197,7 +202,6 @@ class GeneticAlgorithm:
             print("CR :", gene.get_classroom_capacity_fitness())
             print("PW :", gene.get_professor_work_load_fitness())
             print("RA :", gene.get_room_availability_fitness())
-            print("PA :", gene.get_professor_availability_fitness())
             print("BA :", gene.get_block_availability_fitness())
             print("RS :", gene.get_room_suitability_fitness())
             print("FF :", first_year)
@@ -262,7 +266,6 @@ class Gene:
         self.classroom_capacity_fitness = 0
         self.professor_work_load_fitness = 0
         self.room_availability_fitness = 0
-        self.professor_availability_fitness = 0
         self.block_availability_fitness = 0
         self.room_suitability_fitness = 0
         self.first_year_fitness = 0
@@ -303,9 +306,6 @@ class Gene:
     def get_room_availability_fitness(self):
         return self.room_availability_fitness
 
-    def get_professor_availability_fitness(self):
-        return self.professor_availability_fitness
-
     def get_block_availability_fitness(self):
         return self.block_availability_fitness
 
@@ -332,9 +332,6 @@ class Gene:
 
     def set_room_availability_fitness(self, value):
         self.room_availability_fitness = value
-
-    def set_professor_availability_fitness(self, value):
-        self.professor_availability_fitness = value
 
     def set_block_availability_fitness(self, value):
         self.block_availability_fitness = value
@@ -386,27 +383,35 @@ class GeneFitness:
             return 1
 
     def schedule_availability(self):
-
         day = self.gene.get_class_slot_one(1)
+        print("dayday: ", day)
         room_schedule = self.gene.class_slot[0].get_schedule().get_schedule(day)
         block_schedule = self.gene.block.get_schedule().get_schedule(day)
-        prof_schedule = self.gene.professor.get_schedule().get_schedule(day)
 
-        room_availability = True if available_hours_in_schedule(room_schedule) > 2 else False
-        block_availability = True if available_hours_in_schedule(block_schedule) > 2 else False
-        prof_availability = True if available_hours_in_schedule(prof_schedule) > 2 else False
+        print("room schedule : ", self.gene.class_slot[0].get_schedule().get_schedule(day))
+        print("block schedule :", self.gene.block.get_schedule().get_schedule(day))
+        print("prof schedule :", self.gene.professor.get_schedule().get_schedule(day))
 
-        self.gene.set_room_availability_fitness(1) if room_availability else 0
-        self.gene.set_professor_availability_fitness(1) if prof_availability else 0
-        self.gene.set_block_availability_fitness(1) if block_availability else 0
+        print("has :", self.gene.get_class_slot_one(2))
+        room_availability = has_overlap_and_multiple_copies(self.gene.get_class_slot_one(2), room_schedule)
+        block_availability = has_overlap_and_multiple_copies(self.gene.get_class_slot_one(2), block_schedule)
 
-        if room_availability and block_availability and prof_availability:
-            return 3
-        if room_availability + block_availability + prof_availability == 2:
+        if room_availability:
+            self.gene.set_room_availability_fitness(0)
+        else:
+            self.gene.set_room_availability_fitness(1)
+
+        if block_availability:
+            self.gene.set_block_availability_fitness(0)
+        else:
+            self.gene.set_block_availability_fitness(1)
+
+        if not room_availability and not block_availability:
             return 2
-        if any([room_availability, block_availability, prof_availability]):
+        elif not room_availability or not block_availability:
             return 1
-        return 0
+        elif room_availability and block_availability:
+            return 0
 
     def room_suitability(self):
         room = self.gene.get_class_slot_one(0)
@@ -531,10 +536,10 @@ class LectureCourse:
         self.available_rooms = available_rooms
 
     def get_code(self):
-        return self.code()
+        return self.code
 
     def get_lecture_hours(self):
-        return self.lecture_hours()
+        return self.lecture_hours
 
     def get_available_rooms(self):
         return self.available_rooms
@@ -607,13 +612,18 @@ class Population:
 
     def generate_course_block_population(self):
         data = Data()
-        # available_course = data.lab_course + data.lec_course
         blocks = data.block
 
         for block in blocks:
             for course in block.get_courses():
-                self.courses.append(course)
-                self.blocks.append(block)
+                for data_lec_course in Data.lec_course:
+                    if course == data_lec_course.get_code():
+                        self.courses.append(course)
+                        self.blocks.append(block)
+                for data_lab_course in Data.lab_course:
+                    if course == data_lab_course.get_code():
+                        self.courses.append(course)
+                        self.blocks.append(block)
 
     def generate_prof_population(self):
         data = Data()
@@ -623,11 +633,9 @@ class Population:
                 for data_lec_course in Data.lec_course:
                     if course == data_lec_course.get_code():
                         self.professors.append(prof)
-                        break
                 for data_lab_course in Data.lab_course:
                     if course == data_lab_course.get_code():
                         self.professors.append(prof)
-                        break
 
     def generate_class_slot_population(self, meetingTime, day):
         self.class_slots.extend(labRoomMapping(meetingTime, day))
@@ -794,15 +802,15 @@ if __name__ == '__main__':
     Data.add_lab_course(LabCourse("CS 221", 3, ["Sl1", "SL2"]))
     Data.add_lab_course(LabCourse("CS 322", 3, ["Sl1", "SL2", "SL3"]))
 
-    Data.add_lec_course(LabCourse("CS 121", 2, ["Sl1", "SL2", "SL3"]))
-    Data.add_lec_course(LabCourse("CS 222", 2, ["Sl1", "SL2", "SL3", "CISCO"]))
-    Data.add_lec_course(LabCourse("CS 221", 2, ["Sl1", "SL2"]))
-    Data.add_lec_course(LabCourse("CS 322", 2, ["Sl1", "SL2", "SL3"]))
+    Data.add_lab_course(LabCourse("CS 121", 2, ["Sl1", "SL2", "SL3"]))
+    Data.add_lab_course(LabCourse("CS 222", 2, ["Sl1", "SL2", "SL3", "CISCO"]))
+    Data.add_lab_course(LabCourse("CS 221", 2, ["Sl1", "SL2"]))
+    Data.add_lab_course(LabCourse("CS 322", 2, ["Sl1", "SL2", "SL3"]))
 
-    Data.add_lec_course(LabCourse("MATH 111", 3, ["101", "102", "103", "104"]))
-    Data.add_lec_course(LabCourse("GEd 105", 3, ["101", "102", "103", "104"]))
-    Data.add_lec_course(LabCourse("GEd 107", 3, ["101", "102", "103", "104"]))
-    Data.add_lec_course(LabCourse("CS 323", 3, ["101", "102", "103", "104"]))
+    Data.add_lec_course(LectureCourse("MATH 111", 3, ["101", "102", "103", "104"]))
+    Data.add_lec_course(LectureCourse("GEd 105", 3, ["101", "102", "103", "104"]))
+    Data.add_lec_course(LectureCourse("GEd 107", 3, ["101", "102", "103", "104"]))
+    Data.add_lec_course(LectureCourse("CS 323", 3, ["101", "102", "103", "104"]))
 
     Data.add_block(Block("101", 45, ["CS 121", "CS 222", "MATH 111"], 1))
     Data.add_block(Block("102", 45, ["CS 121", "CS 221", "MATH 111"], 0))
@@ -813,9 +821,10 @@ if __name__ == '__main__':
 
     Data.add_prof(Professor("P1", ["CS 121", "CS 222", "MATH 111"]))
     Data.add_prof(Professor("P2", ["CS 121", "CS 221", "CS 323"]))
-    Data.add_prof(Professor("P3", ["MATH 111", "CS 322", "GEf 107"]))
+    Data.add_prof(Professor("P3", ["MATH 111", "CS 322", "GEd 107"]))
     Data.add_prof(Professor("P4", ["GEd 105", "CS 322", "CS 222", "CS 323"]))
     Data.add_prof(Professor("P5", ["CS 121", "GEd 107"]))
+    Data.add_prof(Professor("P5", ["CS 121", "CS 222", "GEd 105"]))
 
     population = Population()
     population.initialize_population(meetingTime, day)
