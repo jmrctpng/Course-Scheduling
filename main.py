@@ -70,6 +70,25 @@ class Data:
 
         return None
 
+    @staticmethod
+    def find_lec_course(course_id):
+
+        for course in Data.lec_course:
+            if course.get_code() == course_id:
+                return course
+
+        return None
+
+    @staticmethod
+    def find_lab_course(course_id):
+
+        for course in Data.lab_course:
+            if course.get_code() == course_id:
+                return course
+
+        return None
+
+
 
 class Schedule:
     def __init__(self):
@@ -185,17 +204,20 @@ class GeneticAlgorithm:
                     gene_fitness.professor_work_load() +
                     gene_fitness.schedule_availability() +
                     gene_fitness.room_suitability() +
+                    gene_fitness.course_slot_suitability() +
                     first_year +
                     gene_fitness.block_lunch() +
                     gene_fitness.professor_lunch() +
-                    gene_fitness.maximum_working_hours()
-                ) / 9
+                    gene_fitness.maximum_working_hours() +
+                    gene_fitness.prof_handled_course()
+                ) / 11
             )
 
             gene.add_fitness_score(fitness_score)
             print("Class slot: ", gene.class_slot[0].get_code(), " ", gene.class_slot[0].get_capacity(), " ",
                   gene.class_slot[0].get_type_of_room(), " ", gene.class_slot[1], " ", gene.class_slot[2])
-            print("Course: ", gene.course)
+            print("Course code: ", gene.course.get_code())
+            print("Course hr : ", gene.course.get_hour())
             print("Professor: ", gene.professor.get_prof_id())
             print("Block: ", gene.block.get_block_code())
             print("Score :", gene.fitness_score)
@@ -204,10 +226,12 @@ class GeneticAlgorithm:
             print("RA :", gene.get_room_availability_fitness())
             print("BA :", gene.get_block_availability_fitness())
             print("RS :", gene.get_room_suitability_fitness())
+            print("CSS :", gene.get_course_slot_suitability_fitness())
             print("FF :", first_year)
             print("PL :", gene.get_prof_lunch_break_fitness())
             print("BL :", gene.get_block_lunch_break_fitness())
             print("WH :", gene.get_working_hours_fitness())
+            print("PHC :", gene.get_prof_handled_course_fitness())
             print("-----------------------------")
 
     @staticmethod
@@ -268,10 +292,12 @@ class Gene:
         self.room_availability_fitness = 0
         self.block_availability_fitness = 0
         self.room_suitability_fitness = 0
+        self.course_slot_suitability_fitness = 0
         self.first_year_fitness = 0
         self.prof_lunch_break_fitness = 0
         self.block_lunch_break_fitness = 0
         self.working_hours_fitness = 0
+        self.prof_handled_course_fitness = 0
 
     def get_class_slot(self):
         return self.class_slot
@@ -324,6 +350,12 @@ class Gene:
     def get_working_hours_fitness(self):
         return self.working_hours_fitness
 
+    def get_course_slot_suitability_fitness(self):
+        return self.course_slot_suitability_fitness
+
+    def get_prof_handled_course_fitness(self):
+        return self.prof_handled_course_fitness
+
     def set_classroom_capacity_fitness(self, value):
         self.classroom_capacity_fitness = value
 
@@ -350,6 +382,12 @@ class Gene:
 
     def set_working_hours_fitness(self, value):
         self.working_hours_fitness = value
+
+    def set_course_slot_suitability_fitness(self, value):
+        self.course_slot_suitability_fitness = value
+
+    def set_prof_handled_course_fitness(self, value):
+        self.prof_handled_course_fitness = value
 
 
 class GeneFitness:
@@ -415,14 +453,27 @@ class GeneFitness:
 
     def room_suitability(self):
         room = self.gene.get_class_slot_one(0)
-        course = Data.find_course(self.gene.course)
+        course = self.gene.course
         available_rooms = course.get_available_rooms()
+
+        print("course.get_available_rooms() : ", course.get_available_rooms())
 
         if room.get_code() in available_rooms:
             self.gene.set_room_suitability_fitness(1)
             return 1
         else:
             self.gene.set_room_suitability_fitness(0)
+            return 0
+
+    def course_slot_suitability(self):
+        slot = self.gene.get_class_slot_one(2)
+
+        print("length : ", len(slot) - 1, " hour : ", self.gene.course.get_hour())
+        if len(slot) - 1 == self.gene.course.get_hour():
+            self.gene.set_course_slot_suitability_fitness(1)
+            return 1
+        else:
+            self.gene.set_course_slot_suitability_fitness(0)
             return 0
 
     def first_year(self):
@@ -483,6 +534,17 @@ class GeneFitness:
 
         return total
 
+    def prof_handled_course(self):
+        course_code = self.gene.course.get_code()
+
+        if course_code in self.gene.professor.get_course_code_handle():
+            self.gene.set_prof_handled_course_fitness(1)
+            return 1
+        else:
+            self.gene.set_prof_handled_course_fitness(0)
+            return 0
+
+
 
 class ClassRoom:
 
@@ -510,16 +572,16 @@ class ClassRoom:
 
 class LabCourse:
 
-    def __init__(self, code, lab_hours, available_rooms):
+    def __init__(self, code, hour, available_rooms):
         self.code = code
-        self.lab_hours = lab_hours
+        self.hour = hour
         self.available_rooms = available_rooms
 
     def get_code(self):
         return self.code
 
-    def get_lab_hours(self):
-        return self.lab_hours()
+    def get_hour(self):
+        return self.hour
 
     def get_available_rooms(self):
         return self.available_rooms
@@ -530,16 +592,16 @@ class LabCourse:
 
 class LectureCourse:
 
-    def __init__(self, code, lecture_hours, available_rooms):
+    def __init__(self, code, hour, available_rooms):
         self.code = code
-        self.lecture_hours = lecture_hours
+        self.hour = hour
         self.available_rooms = available_rooms
 
     def get_code(self):
         return self.code
 
-    def get_lecture_hours(self):
-        return self.lecture_hours
+    def get_hour(self):
+        return self.hour
 
     def get_available_rooms(self):
         return self.available_rooms
@@ -618,11 +680,11 @@ class Population:
             for course in block.get_courses():
                 for data_lec_course in Data.lec_course:
                     if course == data_lec_course.get_code():
-                        self.courses.append(course)
+                        self.courses.append(Data.find_lec_course(course))
                         self.blocks.append(block)
                 for data_lab_course in Data.lab_course:
                     if course == data_lab_course.get_code():
-                        self.courses.append(course)
+                        self.courses.append(Data.find_lab_course(course))
                         self.blocks.append(block)
 
     def generate_prof_population(self):
