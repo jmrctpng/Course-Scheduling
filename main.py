@@ -1,5 +1,8 @@
 from typing import List, Tuple, Any
 import random
+from random import sample
+from time import sleep
+import threading
 
 
 class Data:
@@ -209,8 +212,9 @@ class GeneticAlgorithm:
                     gene_fitness.block_lunch() +
                     gene_fitness.professor_lunch() +
                     gene_fitness.maximum_working_hours() +
-                    gene_fitness.prof_handled_course()
-                ) / 11
+                    gene_fitness.prof_handled_course() +
+                    gene_fitness.block_enrolled_course()
+                ) / 12
             )
 
             gene.add_fitness_score(fitness_score)
@@ -232,6 +236,7 @@ class GeneticAlgorithm:
             print("BL :", gene.get_block_lunch_break_fitness())
             print("WH :", gene.get_working_hours_fitness())
             print("PHC :", gene.get_prof_handled_course_fitness())
+            print("BEC :", gene.get_block_enrolled_course_fitness())
             print("-----------------------------")
 
     @staticmethod
@@ -257,10 +262,90 @@ class GeneticAlgorithm:
 
         return selected_gene
 
+    @staticmethod
+    def hill_climbing(parent1):
 
-class PSO:
-    pass
+        # get the current chromosome
+        if len(GeneticAlgoPopulation.chromosome) == 1:
+            chromosome = GeneticAlgoPopulation.chromosome[0]
+        else:
+            chromosome = GeneticAlgoPopulation.chromosome[-1]
 
+        gene_distributor = Distributor(chromosome.get_genes(), 2)
+
+        if parent1.get_professor_work_load_fitness() == 0 or parent1.get_room_availability_fitness() == 0 or parent1.get_block_availability_fitness() == 0 or parent1.get_course_slot_suitability_fitness() == 0 or parent1.get_prof_lunch_break_fitness() == 0 or parent1.get_block_lunch_break_fitness() == 0:
+           pass
+
+    @staticmethod
+    def calculate_fitness_for_second_parent(parent1, thread):
+
+        search_attribute = []
+
+        if parent1.get_professor_work_load_fitness() == 0 or parent1.get_room_availability_fitness() == 0 or parent1.get_block_availability_fitness() == 0 or parent1.get_course_slot_suitability_fitness() == 0 or parent1.get_prof_lunch_break_fitness() == 0 or parent1.get_block_lunch_break_fitness() == 0:
+            search_attribute.append("cs") # change course slot
+        if (parent1.get_prof_handled_course_fitness() == 1 and parent1.get_block_enrolled_course_fitness() == 1 and parent1.get_room_suitability_fitness() == 0) or (parent1.get_prof_handled_course_fitness() == 0 and parent1.get_block_enrolled_course_fitness() == 0 and parent1.get_room_suitability_fitness() == 1) or (parent1.get_classroom_capacity_fitness() == 0):
+            search_attribute.append("r") # change room
+        if parent1.get_prof_handled_course_fitness() == 0 and parent1.get_block_enrolled_course_fitness() == 0 and parent1.get_room_suitability_fitness() == 0:
+            search_attribute.append("c") # change course
+        if (parent1.get_prof_handled_course_fitness() == 0 and parent1.get_block_enrolled_course_fitness() == 1 and parent1.get_room_suitability_fitness() == 1) or (parent1.get_prof_handled_course_fitness() == 1 and parent1.get_block_enrolled_course_fitness() == 0 and parent1.get_room_suitability_fitness() == 0):
+            search_attribute.append("p")  # change prof
+        if (parent1.get_prof_handled_course_fitness() == 1 and parent1.get_block_enrolled_course_fitness() == 0 and parent1.get_room_suitability_fitness() == 1) or (parent1.get_prof_handled_course_fitness() == 0 and parent1.get_block_enrolled_course_fitness() == 1 and parent1.get_room_suitability_fitness() == 0):
+            search_attribute.append("b")  # change block
+        if parent1.get_first_year_fitness() == 0 or parent1.get_working_hours_fitness() == 0:
+            search_attribute.append("d") # change day
+
+        for gene in thread:
+            pass
+
+
+class Distributor:
+    def __init__(self, items, num_threads):
+        self.items = items
+        self.num_threads = num_threads
+        self.thread_items = [[] for _ in range(num_threads)]
+        self.thread_indices = [[] for _ in range(num_threads)]
+        self.distribute_items()
+
+    def distribute_items(self):
+        num_items = len(self.items)
+        items_per_thread = num_items // self.num_threads
+        remainder = num_items % self.num_threads
+
+        index = 0
+        for i in range(self.num_threads):
+            if remainder > 0:
+                num_assigned = items_per_thread + 1
+                remainder -= 1
+            else:
+                num_assigned = items_per_thread
+
+            self.thread_items[i] = self.items[index:index+num_assigned]
+            self.thread_indices[i] = [j for j in range(index, index+num_assigned)]
+            index += num_assigned
+
+    def start_threads(self, func):
+        threads = []
+        for i in range(self.num_threads):
+            thread = threading.Thread(target=func, args=(self.thread_items[i], self.thread_indices[i]))
+            thread.start()
+            threads.append(thread)
+
+        for thread in threads:
+            thread.join()
+
+
+class GeneProcessor:
+    def __init__(self, gene, index, perfect_gene_found):
+        self.gene = gene
+        self.index = index
+        self.perfect_gene_found = perfect_gene_found
+
+    def process_gene(self):
+        print(f"Processing gene at index {self.index}: {self.gene.value}")
+        # Simulate some processing time
+        sleep(1)
+        if self.gene.value == 7:  # Example perfect gene condition
+            self.perfect_gene_found.value = True
 
 class Chromosome:
     def __init__(self):
@@ -298,6 +383,7 @@ class Gene:
         self.block_lunch_break_fitness = 0
         self.working_hours_fitness = 0
         self.prof_handled_course_fitness = 0
+        self.block_enrolled_course_fitness = 0
 
     def get_class_slot(self):
         return self.class_slot
@@ -356,6 +442,9 @@ class Gene:
     def get_prof_handled_course_fitness(self):
         return self.prof_handled_course_fitness
 
+    def get_block_enrolled_course_fitness(self):
+        return self.block_enrolled_course_fitness
+
     def set_classroom_capacity_fitness(self, value):
         self.classroom_capacity_fitness = value
 
@@ -388,6 +477,9 @@ class Gene:
 
     def set_prof_handled_course_fitness(self, value):
         self.prof_handled_course_fitness = value
+
+    def set_block_enrolled_course_fitness(self, value):
+        self.block_enrolled_course_fitness = value
 
 
 class GeneFitness:
@@ -541,6 +633,15 @@ class GeneFitness:
             self.gene.set_prof_handled_course_fitness(0)
             return 0
 
+    def block_enrolled_course(self):
+        course_code = self.gene.course.get_code()
+
+        if course_code in self.gene.block.get_courses():
+            self.gene.set_block_enrolled_course_fitness(1)
+            return 1
+        else:
+            self.gene.set_block_enrolled_course_fitness(0)
+            return 0
 
 
 class ClassRoom:
