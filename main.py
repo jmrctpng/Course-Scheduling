@@ -142,6 +142,8 @@ class GeneticAlgorithm:
 
     def __init__(self):
         self.chromosome = Chromosome()
+        # self.temp_chromosome = Chromosome()
+        self.new_chromosome = Chromosome()
 
     def encode_chromosome(self, population_class):
         """
@@ -193,32 +195,21 @@ class GeneticAlgorithm:
         else:
             chromosome = GeneticAlgoPopulation.chromosome[-1]
 
+        sum = 0
+
         # calculate gene fitness score
         for gene in chromosome.get_genes():
             gene_fitness = GeneFitness(gene)
+            fitness_score = GeneticAlgorithm.fitness_value(gene_fitness)
 
             if gene_fitness.first_year() is None:
                 first_year = 1
             else:
                 first_year = gene_fitness.first_year()
 
-            fitness_score = (
-                    (
-                            gene_fitness.classroom_capacity() +
-                            gene_fitness.professor_work_load() +
-                            gene_fitness.schedule_availability() +
-                            gene_fitness.room_suitability() +
-                            gene_fitness.course_slot_suitability() +
-                            first_year +
-                            gene_fitness.block_lunch() +
-                            gene_fitness.professor_lunch() +
-                            gene_fitness.maximum_working_hours() +
-                            gene_fitness.prof_handled_course() +
-                            gene_fitness.block_enrolled_course()
-                    ) / 12
-            )
-
             gene.add_fitness_score(fitness_score)
+            sum = sum + fitness_score
+
             print("Class slot: ", gene.class_slot[0].get_code(), " ", gene.class_slot[0].get_capacity(), " ",
                   gene.class_slot[0].get_type_of_room(), " ", gene.class_slot[1], " ", gene.class_slot[2])
             print("Course code: ", gene.course.get_code())
@@ -238,7 +229,15 @@ class GeneticAlgorithm:
             print("WH :", gene.get_working_hours_fitness())
             print("PHC :", gene.get_prof_handled_course_fitness())
             print("BEC :", gene.get_block_enrolled_course_fitness())
+            print("=======================================")
+            print("prof sched : ", gene.professor.get_schedule().get_schedule(gene.class_slot[1]))
+            print("block sched : ", gene.block.get_schedule().get_schedule(gene.class_slot[1]))
+            print("Room sched : ", gene.class_slot[0].get_schedule().get_schedule(gene.class_slot[1]))
             print("-----------------------------")
+
+        chromosome.set_fitness_value(sum/len(chromosome.get_genes()))
+
+        print("chromosome total fit : ", chromosome.get_fitness_value())
 
     @staticmethod
     def roulette_wheel():
@@ -264,7 +263,7 @@ class GeneticAlgorithm:
         return selected_gene
 
     @staticmethod
-    def hill_climbing(parent1, class_slot_population):
+    def hill_climbing(parent1):
 
         # get the current chromosome
         if len(GeneticAlgoPopulation.chromosome) == 1:
@@ -273,17 +272,29 @@ class GeneticAlgorithm:
             chromosome = GeneticAlgoPopulation.chromosome[-1]
 
         attributes_to_improve = GeneticAlgorithm.check_attribute(parent1)
+        print("att ", attributes_to_improve)
+        print("p1 Class slot: ", parent1.get_class_slot_one(0).get_code(), " ",
+              parent1.get_class_slot_one(0).get_capacity(), " ",
+              parent1.get_class_slot_one(0).get_type_of_room(), " ", parent1.get_class_slot_one(1), " ",
+              parent1.get_class_slot_one(2))
+        print("p1 Course code: ", parent1.get_course().get_code())
+        print("p1 Course hr : ", parent1.get_course().get_hour())
+        print("p1 Professor: ", parent1.get_professor().get_prof_id())
+        print("p1 Block: ", parent1.get_block().get_block_code())
+        print("p1 Score :", parent1.fitness_score)
+        print("p1 orig fit : ", parent1.get_fitness_score())
 
-        gene_distributor = Distributor(chromosome.get_genes(), 2, attributes_to_improve, parent1, False)
+        gene_distributor = Distributor(chromosome.get_genes(), 2, attributes_to_improve, parent1)
 
-        if "cs" in attributes_to_improve:
-            class_slot_distributor = Distributor(class_slot_population, 4, ["cs"], parent1, True)
+        best = gene_distributor.start_threads()
+        print("best", best)
+        highest_fitness = max(best, key=lambda x: x[1])
 
-        highest_fitness = max(gene_distributor.start_threads(), key=lambda x: x[1])
+        print("high : ", highest_fitness)
 
+        print("index : ", chromosome.get_position(highest_fitness[0]))
 
-
-
+        return highest_fitness[0]
 
     @staticmethod
     def check_attribute(parent1):
@@ -297,11 +308,11 @@ class GeneticAlgorithm:
                 parent1.get_prof_handled_course_fitness() == 0 and parent1.get_block_enrolled_course_fitness() == 0 and parent1.get_room_suitability_fitness() == 1) or (
                 parent1.get_classroom_capacity_fitness() == 0):
             search_attribute.append("r")  # change room
-        if parent1.get_prof_handled_course_fitness() == 0 and parent1.get_block_enrolled_course_fitness() == 0 and parent1.get_room_suitability_fitness() == 0:
-            search_attribute.append("c")  # change course
         if (
-                parent1.get_prof_handled_course_fitness() == 0 and parent1.get_block_enrolled_course_fitness() == 1 and parent1.get_room_suitability_fitness() == 1) or (
+                parent1.get_prof_handled_course_fitness() == 0 and parent1.get_block_enrolled_course_fitness() == 0 and parent1.get_room_suitability_fitness() == 0) or (
                 parent1.get_prof_handled_course_fitness() == 1 and parent1.get_block_enrolled_course_fitness() == 0 and parent1.get_room_suitability_fitness() == 0):
+            search_attribute.append("c")  # change course
+        if parent1.get_prof_handled_course_fitness() == 0 and parent1.get_block_enrolled_course_fitness() == 1 and parent1.get_room_suitability_fitness() == 1:
             search_attribute.append("p")  # change prof
         if (
                 parent1.get_prof_handled_course_fitness() == 1 and parent1.get_block_enrolled_course_fitness() == 0 and parent1.get_room_suitability_fitness() == 1) or (
@@ -313,19 +324,11 @@ class GeneticAlgorithm:
         return search_attribute
 
     @staticmethod
-    def parent_two(items, indices, attribute, parent1, parent2, class_slot):
+    def parent_two(items, attribute, parent1, parent2):
 
         perfect_gene_found = None
-        perfect_gene_score = None
+        perfect_gene_score = 0
         parent1_copy = copy.copy(parent1)
-        count = 0
-
-        if class_slot:
-            for cs in items:
-                if "cs" in attribute:
-                    parent1_copy.set_class_slot(cs)
-
-                    # TODO: compute fitness function
 
         for item in items:
             if "cs" in attribute:
@@ -343,51 +346,103 @@ class GeneticAlgorithm:
                 if item.get_class_slot_one(1) != parent1_copy.get_class_slot_one(1):
                     parent1_copy.set_class_slot(item.get_class_slot())
 
-            gene_fitness = GeneFitness(item)
+            gene_fitness = GeneFitness(parent1_copy)
+            fitness_score = GeneticAlgorithm.fitness_value(gene_fitness)
 
-            if gene_fitness.first_year() is None:
-                first_year = 1
-            else:
-                first_year = gene_fitness.first_year()
-
-            fitness_score = (
-                    (
-                            gene_fitness.classroom_capacity() +
-                            gene_fitness.professor_work_load() +
-                            gene_fitness.schedule_availability() +
-                            gene_fitness.room_suitability() +
-                            gene_fitness.course_slot_suitability() +
-                            first_year +
-                            gene_fitness.block_lunch() +
-                            gene_fitness.professor_lunch() +
-                            gene_fitness.maximum_working_hours() +
-                            gene_fitness.prof_handled_course() +
-                            gene_fitness.block_enrolled_course()
-                    ) / 12
-            )
+            print("p2 fit : ", fitness_score)
+            print("p1 fit : ", parent1.get_fitness_score(), "<<")
 
             if fitness_score == 1:
-                return parent2.append([indices[count], 1])
-            elif fitness_score > item.get_fitness_score():
-                perfect_gene_found = indices[count]
+                return parent2.append([item, 1])
+            elif fitness_score > perfect_gene_score:
+                print("found2 : ", item)
+                perfect_gene_found = item
                 perfect_gene_score = fitness_score
-
-            count = count + 1
 
         # return the index of perfect gene for parent 1
         return parent2.append([perfect_gene_found, perfect_gene_score])
 
+    @staticmethod
+    def fitness_value(gene_fitness):
+        if gene_fitness.first_year() is None:
+            first_year = 1
+        else:
+            first_year = gene_fitness.first_year()
+
+        fitness_score = (
+                (
+                        gene_fitness.classroom_capacity() +
+                        gene_fitness.professor_work_load() +
+                        gene_fitness.schedule_availability() +
+                        gene_fitness.room_suitability() +
+                        gene_fitness.course_slot_suitability() +
+                        first_year +
+                        gene_fitness.block_lunch() +
+                        gene_fitness.professor_lunch() +
+                        gene_fitness.maximum_working_hours() +
+                        gene_fitness.prof_handled_course() +
+                        gene_fitness.block_enrolled_course()
+                ) / 12
+        )
+
+        return fitness_score
+
+    def uniform_crossover(self, parent1, parent2):
+        attribute = GeneticAlgorithm.check_attribute(parent1)
+
+        # get the current chromosome
+        if len(GeneticAlgoPopulation.chromosome) == 1:
+            chromosome = GeneticAlgoPopulation.chromosome[0]
+        else:
+            chromosome = GeneticAlgoPopulation.chromosome[-1]
+
+        parent1_copy = copy.copy(parent1)
+        parent2_copy = copy.copy(parent2)
+
+        if 'cs' in attribute or 'r' in attribute or 'd' in attribute:
+            parent1.set_class_slot(parent2_copy.get_class_slot())
+            parent2.set_class_slot(parent1_copy.get_class_slot())
+        if 'p' in attribute:
+            parent1.set_professor(parent2_copy.get_professor())
+            parent2.set_professor(parent1_copy.get_professor())
+        if 'b' in attribute:
+            parent1.set_block(parent2_copy.get_block())
+            parent2.set_block(parent1_copy.get_block())
+        if 'c' in attribute:
+            parent1.set_course(parent2_copy.get_course())
+            parent2.set_course(parent1_copy.get_course())
+
+        parent1_fitness = GeneFitness(parent1)
+        parent1_fitness_score = GeneticAlgorithm.fitness_value(parent1_fitness)
+        parent1.add_fitness_score(parent1_fitness_score)
+
+        parent2_fitness = GeneFitness(parent2)
+        parent2_fitness_score = GeneticAlgorithm.fitness_value(parent2_fitness)
+        parent2.add_fitness_score(parent2_fitness_score)
+
+        print("p1 before crossover : ", parent1_copy.get_fitness_score())
+        print("p2 before crossover : ", parent2_copy.get_fitness_score())
+        print("p1 after crossover : ", parent1.get_fitness_score())
+        print("p2 after crossover : ", parent2.get_fitness_score(), "index : ", chromosome.get_position(parent2))
+
+        if parent1.get_fitness_score() == 1 and parent2.get_fitness_score() == 1:
+            self.new_chromosome.add_gene(parent1)
+            self.new_chromosome.add_gene(parent2)
+            chromosome.pop_gene(chromosome.get_position(parent2))
+        elif parent1.get_fitness_score() > parent2.get_fitness_score():
+            self.new_chromosome.add_gene(parent1)
+        elif parent1.get_fitness_score() < parent2.get_fitness_score():
+            self.new_chromosome.add_gene(parent2)
+            chromosome.pop_gene(chromosome.get_position(parent2))
 
 class Distributor:
-    def __init__(self, items, num_threads, attribute, parent1, class_slot):
+    def __init__(self, items, num_threads, attribute, parent1):
         self.items = items
         self.num_threads = num_threads
         self.parent1 = parent1
         self.parent2 = []
         self.attribute = attribute
-        self.class_slot = class_slot
         self.thread_items = [[] for _ in range(num_threads)]
-        self.thread_indices = [[] for _ in range(num_threads)]
         self.distribute_items()
 
     def distribute_items(self):
@@ -404,13 +459,13 @@ class Distributor:
                 num_assigned = items_per_thread
 
             self.thread_items[i] = self.items[index:index + num_assigned]
-            self.thread_indices[i] = [j for j in range(index, index + num_assigned)]
             index += num_assigned
 
-    def start_threads(self, func):
+    def start_threads(self):
         threads = []
         for i in range(self.num_threads):
-            thread = threading.Thread(target=func, args=(self.thread_items[i], self.thread_indices[i], self.attribute, self.parent1, self.parent2, self.class_slot))
+            thread = threading.Thread(target=GeneticAlgorithm.parent_two, args=(
+                self.thread_items[i], self.attribute, self.parent1, self.parent2))
             thread.start()
             threads.append(thread)
 
@@ -420,23 +475,10 @@ class Distributor:
         return self.parent2
 
 
-class GeneProcessor:
-    def __init__(self, gene, index, perfect_gene_found):
-        self.gene = gene
-        self.index = index
-        self.perfect_gene_found = perfect_gene_found
-
-    def process_gene(self):
-        print(f"Processing gene at index {self.index}: {self.gene.value}")
-        # Simulate some processing time
-        sleep(1)
-        if self.gene.value == 7:  # Example perfect gene condition
-            self.perfect_gene_found.value = True
-
-
 class Chromosome:
     def __init__(self):
         self.genes = []
+        self.fitness_value = 0
 
     def add_gene(self, gene):
         self.genes.append(gene)
@@ -449,6 +491,15 @@ class Chromosome:
 
     def pop_gene(self, index):
         self.genes.pop(index)
+
+    def get_position(self, gene):
+        return self.genes.index(gene)
+
+    def set_fitness_value(self, value):
+        self.fitness_value = value
+    def get_fitness_value(self):
+        return self.fitness_value
+
 
 
 class Gene:
@@ -598,7 +649,7 @@ class GeneFitness:
         day = self.gene.get_class_slot_one(1)
         schedule = self.gene.professor.get_schedule().get_schedule(day)
 
-        print("sched :", schedule)
+        # print("sched :", schedule)
         result = has_overlap_and_multiple_copies(self.gene.get_class_slot_one(2), schedule)
 
         if result:
@@ -610,15 +661,15 @@ class GeneFitness:
 
     def schedule_availability(self):
         day = self.gene.get_class_slot_one(1)
-        print("dayday: ", day)
+        # print("dayday: ", day)
         room_schedule = self.gene.class_slot[0].get_schedule().get_schedule(day)
         block_schedule = self.gene.block.get_schedule().get_schedule(day)
 
-        print("room schedule : ", self.gene.class_slot[0].get_schedule().get_schedule(day))
-        print("block schedule :", self.gene.block.get_schedule().get_schedule(day))
-        print("prof schedule :", self.gene.professor.get_schedule().get_schedule(day))
+        # print("room schedule : ", self.gene.class_slot[0].get_schedule().get_schedule(day))
+        # print("block schedule :", self.gene.block.get_schedule().get_schedule(day))
+        # print("prof schedule :", self.gene.professor.get_schedule().get_schedule(day))
 
-        print("time_clot :", self.gene.get_class_slot_one(2))
+        # print("time_clot :", self.gene.get_class_slot_one(2))
         room_availability = has_overlap_and_multiple_copies(self.gene.get_class_slot_one(2), room_schedule)
         block_availability = has_overlap_and_multiple_copies(self.gene.get_class_slot_one(2), block_schedule)
 
@@ -644,7 +695,7 @@ class GeneFitness:
         course = self.gene.course
         available_rooms = course.get_available_rooms()
 
-        print("course.get_available_rooms() : ", course.get_available_rooms())
+        # print("course.get_available_rooms() : ", course.get_available_rooms())
 
         if room.get_code() in available_rooms:
             self.gene.set_room_suitability_fitness(1)
@@ -656,7 +707,7 @@ class GeneFitness:
     def course_slot_suitability(self):
         slot = self.gene.get_class_slot_one(2)
 
-        print("length : ", len(slot) - 1, " hour : ", self.gene.course.get_hour())
+        # print("length : ", len(slot) - 1, " hour : ", self.gene.course.get_hour())
         if len(slot) - 1 == self.gene.course.get_hour():
             self.gene.set_course_slot_suitability_fitness(1)
             return 1
@@ -668,7 +719,7 @@ class GeneFitness:
 
         block = Data.find_block(self.gene.block)
 
-        print("year : ", block.get_year())
+        # print("year : ", block.get_year())
         if block.get_year() == 1:
             if self.gene.get_class_slot_one(1) != 'S':
                 self.gene.set_first_year_fitness(1)
@@ -1087,11 +1138,22 @@ if __name__ == '__main__':
     population.initialize_population(meetingTime, day)
 
     genetic_algo = GeneticAlgorithm()
+    # for loop
     genetic_algo.encode_chromosome(population)
     genetic_algo.calculate_fit()
-    gene = genetic_algo.roulette_wheel()
-    print(gene.get_fitness_score())
-    print(gene.get_class_slot())
-    print(gene.get_block())
-    print(gene.get_professor())
-    print(gene.get_course())
+    parent1 = genetic_algo.roulette_wheel()
+    print("parent 1 address : ", parent1)
+    parent2 = genetic_algo.hill_climbing(parent1)
+
+    print("Class slot: ", parent2.get_class_slot_one(0).get_code(), " ", parent2.get_class_slot_one(0).get_capacity(),
+          " ",
+          parent2.get_class_slot_one(0).get_type_of_room(), " ", parent2.get_class_slot_one(1), " ",
+          parent2.get_class_slot_one(2))
+    print("Course code: ", parent2.get_course().get_code())
+    print("Course hr : ", parent2.get_course().get_hour())
+    print("Professor: ", parent2.get_professor().get_prof_id())
+    print("Block: ", parent2.get_block().get_block_code())
+    print("Score :", parent2.fitness_score)
+
+    genetic_algo.uniform_crossover(parent1, parent2)
+
