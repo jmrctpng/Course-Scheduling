@@ -1508,14 +1508,23 @@ if __name__ == '__main__':
     meetingTime = ["07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
     day = ["M", "T", "W", "Th", "F", "S"]
 
-    Data.add_room(ClassRoom("SL1", 50, "Laboratory"))
-    Data.add_room(ClassRoom("SL2", 50, "Laboratory"))
-    Data.add_room(ClassRoom("SL3", 50, "Laboratory"))
-    Data.add_room(ClassRoom("CISCO", 50, "Laboratory"))
-    Data.add_room(ClassRoom("101", 50, "Regular"))
-    Data.add_room(ClassRoom("102", 50, "Regular"))
-    Data.add_room(ClassRoom("103", 50, "Regular"))
-    Data.add_room(ClassRoom("104", 50, "Regular"))
+    sl1 = ClassRoom("SL1", 50, "Laboratory")
+    sl2 = ClassRoom("SL2", 50, "Laboratory")
+    sl3 = ClassRoom("SL3", 50, "Laboratory")
+    cisco = ClassRoom("CISCO", 50, "Laboratory")
+    r1 = ClassRoom("101", 50, "Regular")
+    r2 = ClassRoom("102", 50, "Regular")
+    r3 = ClassRoom("103", 50, "Regular")
+    r4 = ClassRoom("104", 50, "Regular")
+
+    Data.add_room(sl1)
+    Data.add_room(sl2)
+    Data.add_room(sl3)
+    Data.add_room(cisco)
+    Data.add_room(r1)
+    Data.add_room(r2)
+    Data.add_room(r3)
+    Data.add_room(r4)
 
     # year = 1 if first year else 0
     Data.add_lab_course(LabCourse("CS 121", 3, ["Sl1", "SL2", "SL3"]))
@@ -1533,19 +1542,33 @@ if __name__ == '__main__':
     Data.add_lec_course(LectureCourse("GEd 107", 3, ["101", "102", "103", "104"]))
     Data.add_lec_course(LectureCourse("CS 323", 3, ["101", "102", "103", "104"]))
 
-    Data.add_block(Block("101", 45, ["CS 121", "CS 222", "MATH 111"], 1))
-    Data.add_block(Block("102", 45, ["CS 121", "CS 221", "MATH 111"], 1))
-    Data.add_block(Block("201", 45, ["CS 322", "CS 323", "GEd 107"], 0))
-    Data.add_block(Block("202", 45, ["GEd 105", "CS 222", "CS 121"], 0))
-    Data.add_block(Block("203", 45, ["GEd 105", "CS 222", "CS 121"], 0))
-    Data.add_block(Block("301", 45, ["CS 322", "CS 323", "GEd 107"], 0))
+    block101 = Block("101", 45, ["CS 121", "CS 222", "MATH 111"], 1)
+    block102 = Block("102", 45, ["CS 121", "CS 221", "MATH 111"], 1)
+    block201 = Block("201", 45, ["CS 322", "CS 323", "GEd 107"], 0)
+    block202 = Block("202", 45, ["GEd 105", "CS 222", "CS 121"], 0)
+    block203 = Block("203", 45, ["GEd 105", "CS 222", "CS 121"], 0)
+    block301 = Block("301", 45, ["CS 322", "CS 323", "GEd 107"], 0)
 
-    Data.add_prof(Professor("P1", ["CS 121", "CS 222", "MATH 111"]))
-    Data.add_prof(Professor("P2", ["CS 121", "CS 221", "CS 323"]))
-    Data.add_prof(Professor("P3", ["MATH 111", "CS 322", "GEd 107"]))
-    Data.add_prof(Professor("P4", ["GEd 105", "CS 322", "CS 222", "CS 323"]))
-    Data.add_prof(Professor("P5", ["CS 121", "GEd 107"]))
-    Data.add_prof(Professor("P6", ["CS 121", "CS 222", "GEd 105"]))
+    Data.add_block(block101)
+    Data.add_block(block102)
+    Data.add_block(block201)
+    Data.add_block(block202)
+    Data.add_block(block203)
+    Data.add_block(block301)
+
+    p1 = Professor("P1", ["CS 121", "CS 222", "MATH 111"])
+    p2 = Professor("P2", ["CS 121", "CS 221", "CS 323"])
+    p3 = Professor("P3", ["MATH 111", "CS 322", "GEd 107"])
+    p4 = Professor("P4", ["GEd 105", "CS 322", "CS 222", "CS 323"])
+    p5 = Professor("P5", ["CS 121", "GEd 107"])
+    p6 = Professor("P6", ["CS 121", "CS 222", "GEd 105"])
+
+    Data.add_prof(p1)
+    Data.add_prof(p2)
+    Data.add_prof(p3)
+    Data.add_prof(p4)
+    Data.add_prof(p5)
+    Data.add_prof(p6)
 
     population = Population()
     population.initialize_population(meetingTime, day)
@@ -1562,6 +1585,42 @@ if __name__ == '__main__':
         MEMOIZATION = False
 
         if chromosome_fit == 1:
+            prof = [p1, p2, p3, p4, p5, p6]
+            room = [sl1, sl2, sl3, cisco, r1, r2, r3, r4]
+            block = [block101, block102, block201, block202, block203, block301]
+
+            for i in range(len(prof)):
+                print("===========================================")
+                print("Professor ", i+1)
+                print("Monday : ", prof[i].get_schedule().get_m())
+                print("Tuesday : ", prof[i].get_schedule().get_t())
+                print("Wednesday : ", prof[i].get_schedule().get_w())
+                print("Thursday : ", prof[i].get_schedule().get_th())
+                print("Friday : ", prof[i].get_schedule().get_f())
+                print("Saturday : ", prof[i].get_schedule().get_s())
+                print("===========================================")
+
+            for i in range(len(block)):
+                print("===========================================")
+                print("Block ", i + 1)
+                print("Monday : ", block[i].get_schedule().get_m())
+                print("Tuesday : ", block[i].get_schedule().get_t())
+                print("Wednesday : ", block[i].get_schedule().get_w())
+                print("Thursday : ", block[i].get_schedule().get_th())
+                print("Friday : ", block[i].get_schedule().get_f())
+                print("Saturday : ", block[i].get_schedule().get_s())
+                print("===========================================")
+
+            for i in range(len(room)):
+                print("===========================================")
+                print("Room ", i + 1)
+                print("Monday : ", room[i].get_schedule().get_m())
+                print("Tuesday : ", room[i].get_schedule().get_t())
+                print("Wednesday : ", room[i].get_schedule().get_w())
+                print("Thursday : ", room[i].get_schedule().get_th())
+                print("Friday : ", room[i].get_schedule().get_f())
+                print("Saturday : ", room[i].get_schedule().get_s())
+                print("===========================================")
             not_perfect_schedule = False
         else:
             while new_chromosome:
