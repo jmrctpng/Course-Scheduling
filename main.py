@@ -346,12 +346,6 @@ class GeneticAlgorithm:
         orig_block_sched = copy.copy(parent1.get_block().get_schedule().get_schedule(prev_day))
         orig_prof_sched = copy.copy(parent1.get_professor().get_schedule().get_schedule(prev_day))
 
-        # print("P2: P1 ID : ", parent1)
-        # print("P2: P1 TS : ", prev_time_slot)
-        # print("P2: P1 BS : ", parent1.get_block().get_schedule().get_schedule(prev_day))
-        # print("P2: P1 PS : ", parent1.get_professor().get_schedule().get_schedule(prev_day))
-        # print("P2: P1 CS : ", parent1.get_class_slot_one(0).get_schedule().get_schedule(prev_day))
-
         for i in range(12):
             random_num = np.random.randint(self.chromosome_size)
 
@@ -699,10 +693,16 @@ class GeneticAlgorithm:
                         random.randrange(len(self.class_slot_population)))
 
                     child_class_slot = child.get_class_slot()
-
                     self.class_slot_population.append(child_class_slot)
 
                     child.set_class_slot(random_class_slot)
+
+                    new_time_slot = child.get_class_slot_one(2)
+                    new_day = child.get_class_slot_one(1)
+
+                    child_copy.get_class_slot_one(0).get_schedule().remove_sched(prev_day, prev_time_slot)
+                    child.get_class_slot_one(0).set_schedule(new_day, new_time_slot)
+
                 else:
                     child_class_slot = child.get_class_slot()
                     child.set_class_slot(random_gene.get_class_slot())
@@ -814,21 +814,23 @@ class GeneticAlgorithm:
                 print("mutation cs")
 
                 if len(self.class_slot_population) > 0:
-
                     random_class_slot = self.class_slot_population.pop(
                         random.randrange(len(self.class_slot_population)))
 
                     child_class_slot = child.get_class_slot()
                     self.class_slot_population.append(child_class_slot)
+
                     child.set_class_slot(random_class_slot)
 
                     new_time_slot = child.get_class_slot_one(2)
                     new_day = child.get_class_slot_one(1)
 
+                    child_copy.get_class_slot_one(0).get_schedule().remove_sched(prev_day, prev_time_slot)
                     child_copy.get_block().get_schedule().remove_sched(prev_day, prev_time_slot)
                     child_copy.get_professor().get_schedule().remove_sched(prev_day, prev_time_slot)
                     child.get_block().set_schedule(new_day, new_time_slot)
                     child.get_professor().set_schedule(new_day, new_time_slot)
+                    child.get_class_slot_one(0).set_schedule(new_day, new_time_slot)
 
         return child
 
@@ -844,46 +846,6 @@ class GeneticAlgorithm:
         GeneticAlgoPopulation.chromosome.append(self.new_chromosome)
         self.new_chromosome = new_chromosome
         self.chromosome_size = 0
-
-
-class Distributor:
-    def __init__(self, items, num_threads, attribute, parent1):
-        self.items = items
-        self.num_threads = num_threads
-        self.parent1 = parent1
-        self.parent2 = []
-        self.attribute = attribute
-        self.thread_items = [[] for _ in range(num_threads)]
-        self.distribute_items()
-
-    def distribute_items(self):
-        num_items = len(self.items)
-        items_per_thread = num_items // self.num_threads
-        remainder = num_items % self.num_threads
-
-        index = 0
-        for i in range(self.num_threads):
-            if remainder > 0:
-                num_assigned = items_per_thread + 1
-                remainder -= 1
-            else:
-                num_assigned = items_per_thread
-
-            self.thread_items[i] = self.items[index:index + num_assigned]
-            index += num_assigned
-
-    def start_threads(self):
-        threads = []
-        for i in range(self.num_threads):
-            thread = threading.Thread(target=GeneticAlgorithm.parent_two, args=(
-                self.thread_items[i], self.attribute, self.parent1, self.parent2))
-            thread.start()
-            threads.append(thread)
-
-        for thread in threads:
-            thread.join()
-
-        return self.parent2
 
 
 class Chromosome:
@@ -1084,7 +1046,6 @@ class GeneFitness:
 
     def schedule_availability(self):
         day = self.gene.get_class_slot_one(1)
-        # print("dayday: ", day)
         room_schedule = self.gene.class_slot[0].get_schedule().get_schedule(day)
         block_schedule = self.gene.block.get_schedule().get_schedule(day)
 
@@ -1112,8 +1073,6 @@ class GeneFitness:
         room = self.gene.get_class_slot_one(0)
         course = self.gene.course
         available_rooms = course.get_available_rooms()
-
-        # print("course.get_available_rooms() : ", course.get_available_rooms())
 
         if room.get_code() in available_rooms:
             self.gene.set_room_suitability_fitness(1)
@@ -1575,7 +1534,7 @@ if __name__ == '__main__':
     Data.add_lec_course(LectureCourse("CS 323", 3, ["101", "102", "103", "104"]))
 
     Data.add_block(Block("101", 45, ["CS 121", "CS 222", "MATH 111"], 1))
-    Data.add_block(Block("102", 45, ["CS 121", "CS 221", "MATH 111"], 0))
+    Data.add_block(Block("102", 45, ["CS 121", "CS 221", "MATH 111"], 1))
     Data.add_block(Block("201", 45, ["CS 322", "CS 323", "GEd 107"], 0))
     Data.add_block(Block("202", 45, ["GEd 105", "CS 222", "CS 121"], 0))
     Data.add_block(Block("203", 45, ["GEd 105", "CS 222", "CS 121"], 0))
