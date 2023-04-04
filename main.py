@@ -235,35 +235,6 @@ class GeneticAlgorithm:
             gene.add_fitness_score(fitness_score)
             sum = sum + fitness_score
 
-            print("Gene ID : ", gene)
-            print("Class slot: ", gene.class_slot[0].get_code(), " ", gene.class_slot[0].get_capacity(), " ",
-                  gene.class_slot[0].get_type_of_room(), " ", gene.class_slot[1], " ", gene.class_slot[2])
-            print("Course code: ", gene.course.get_code())
-            print("Course hr : ", gene.course.get_hour())
-            print("Professor: ", gene.professor.get_prof_id())
-            print("Block: ", gene.block.get_block_code())
-            print("Score :", gene.fitness_score)
-            print("CR :", gene.get_classroom_capacity_fitness())
-            print("PW :", gene.get_professor_work_load_fitness())
-            print("RA :", gene.get_room_availability_fitness())
-            print("BA :", gene.get_block_availability_fitness())
-            print("RS :", gene.get_room_suitability_fitness())
-            print("CSS :", gene.get_course_slot_suitability_fitness())
-            print("FF :", first_year)
-            print("PL :", gene.get_prof_lunch_break_fitness())
-            print("BL :", gene.get_block_lunch_break_fitness())
-            print("WH :", gene.get_working_hours_fitness())
-            print("PHC :", gene.get_prof_handled_course_fitness())
-            print("BEC :", gene.get_block_enrolled_course_fitness())
-            print("PHCS :", gene.get_prof_handled_course_sched_fitness())
-            print("BHCS :", gene.get_block_handled_course_sched_fitness())
-            print("=======================================")
-            print("prof id : ", gene.professor)
-            print("prof sched : ", gene.professor.get_schedule().get_schedule(gene.class_slot[1]))
-            print("block sched : ", gene.block.get_schedule().get_schedule(gene.class_slot[1]))
-            print("Room sched : ", gene.class_slot[0].get_schedule().get_schedule(gene.class_slot[1]))
-            print("-----------------------------")
-
 
         self.curr_chromosome.set_fitness_value(sum / self.chromosome_size)
 
@@ -831,6 +802,10 @@ class GeneticAlgorithm:
             elif fitness_score > perfect_gene_score:
                 perfect_gene_found = item
                 perfect_gene_score = fitness_score
+
+        if parent1.get_fitness_score() > perfect_gene_score:
+            if parent1.get_fitness_score() >= 0.78:
+                return None
 
         return perfect_gene_found
 
