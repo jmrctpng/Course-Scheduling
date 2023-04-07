@@ -1711,7 +1711,6 @@ if __name__ == '__main__':
                 print("Thursday : ", block_list[i].get_schedule().get_th())
                 print("Friday : ", block_list[i].get_schedule().get_f())
                 print("Saturday : ", block_list[i].get_schedule().get_s())
-                print("schedule course : ", block_list[i].get_schedule_course())
                 print("===========================================")
 
             for i in range(len(room_list)):
