@@ -1532,12 +1532,22 @@ def convert_time(start_time, end_time):
 
 def reformat_sched(lst):
     new_lst = []
-    format = ""
+    separator = "*"
+    count = 1
+
+    if len(lst) == 1:
+        separator = ""
 
     for sched in lst:
+
+        if count == len(lst):
+            separator = ""
+
         new_time = convert_time(sched[0][0], sched[0][-1])
-        format = new_time + " - " + sched[1] + " - " + sched[2] + " (" + sched[3] + ")"
+        format = new_time + "\n" + sched[1] + " - " + sched[2] + " (" + sched[3] + ")" + "\n " + separator
         new_lst.append(format)
+
+        count += 1
 
     return new_lst
 
