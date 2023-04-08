@@ -1,11 +1,10 @@
+from tabulate import tabulate
 import sys
 from typing import List
 import random
 import time
 import numpy as np
 import copy
-from collections import Counter
-import os
 
 FITNESS_SCORES = []  # list of 10 current fitness scores
 BEST_FITNESS = 0
@@ -188,12 +187,6 @@ class GeneticAlgorithm:
         """
 
         data = Data()
-
-        print("CS size : ", len(population_class.get_class_slots()))
-        print("course size : ", len(population_class.get_courses()))
-        print("block size : ", len(population_class.get_blocks()))
-        print("prof size : ", len(population_class.get_professors()))
-
         for i in range(len(population_class.get_courses())):
             class_slot = population_class.get_class_slots().pop(
                 random.randrange(len(population_class.get_class_slots())))
@@ -1515,6 +1508,95 @@ def has_no_lunch_break(pb_schedule):
     return set([tuple(sublist) for sublist in [[10, 11], [11, 12], [12, 13], [13, 14]]]).issubset(
         [tuple(sublist) for sublist in sorted_sublists])
 
+
+def convert_time(start_time, end_time):
+    start_time = int(start_time)
+    end_time = int(end_time)
+
+    start_hour = start_time % 12
+    end_hour = end_time % 12
+
+    if start_hour == 0:
+        start_hour = 12
+
+    if end_hour == 0:
+        end_hour = 12
+
+    start_suffix = 'pm' if start_time >= 12 else 'am'
+    end_suffix = 'pm' if end_time >= 12 else 'am'
+
+    start_str = '{}:00 {}'.format(start_hour, start_suffix)
+    end_str = '{}:00 {}'.format(end_hour, end_suffix)
+
+    return ('{} to {}'.format(start_str, end_str))
+
+def reformat_sched(lst):
+    new_lst = []
+    format = ""
+
+    for sched in lst:
+        new_time = convert_time(sched[0][0], sched[0][-1])
+        format = new_time + " - " + sched[1] + " - " + sched[2] + " (" + sched[3] + ")"
+        new_lst.append(format)
+
+    return new_lst
+
+
+def display_table(lst, obj):
+
+    for i in range(len(lst)):
+
+        sched_row = []
+        data = []
+
+        if obj == "PROFESSOR":
+            id = lst[i].get_prof_id()
+        elif obj == "BLOCK":
+            id = lst[i].get_block_code()
+        else:
+            id = lst[i].get_code()
+
+        monday_sched  = sorted(lst[i].get_schedule().get_m(), key=lambda x: int(x[0][0]))
+        monday_sched = reformat_sched(monday_sched)
+
+        tuesday_sched  = sorted(lst[i].get_schedule().get_t(), key=lambda x: int(x[0][0]))
+        tuesday_sched = reformat_sched(tuesday_sched)
+
+        wednesday_sched  = sorted(lst[i].get_schedule().get_w(), key=lambda x: int(x[0][0]))
+        wednesday_sched = reformat_sched(wednesday_sched)
+
+        thursday_sched  = sorted(lst[i].get_schedule().get_th(), key=lambda x: int(x[0][0]))
+        thursday_sched = reformat_sched(thursday_sched)
+
+        friday_sched  = sorted(lst[i].get_schedule().get_f(), key=lambda x: int(x[0][0]))
+        friday_sched = reformat_sched(friday_sched)
+
+        saturday_sched  = sorted(lst[i].get_schedule().get_s(), key=lambda x: int(x[0][0]))
+        saturday_sched = reformat_sched(saturday_sched)
+
+
+        list_lengths = [len(monday_sched), len(tuesday_sched), len(wednesday_sched), len(thursday_sched),
+                        len(friday_sched), len(saturday_sched)]
+        greatest_lenth = max(list_lengths)
+
+        print(id + " SCHEDULE")
+        for row in range(greatest_lenth):
+            row_list = []
+            row_list.append("" if row >= len(monday_sched) else monday_sched[row])
+            row_list.append("" if row >= len(tuesday_sched) else tuesday_sched[row])
+            row_list.append("" if row >= len(wednesday_sched) else wednesday_sched[row])
+            row_list.append("" if row >= len(thursday_sched) else thursday_sched[row])
+            row_list.append("" if row >= len(friday_sched) else friday_sched[row])
+            row_list.append("" if row >= len(saturday_sched) else saturday_sched[row])
+            sched_row.append(row_list)
+
+        for row in sched_row:
+            data.append(row)
+
+        print(tabulate(data, headers=["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
+                       tablefmt="pretty"))
+        print("\n\n")
+
 if __name__ == '__main__':
     meetingTime = ["07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
     day = ["M", "T", "W", "Th", "F"]
@@ -1657,6 +1739,7 @@ if __name__ == '__main__':
             print("---------------------------------------------------------------------")
             print("Solution found after ", generation, " generation")
             print("Fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
+            print("---------------------------------------------------------------------\n\n")
 
             prof_list = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10]
             room_list = [sl1, sl2, sl3, cisco, ml, itl, edl, r102, r103, r104, r201, r202, r203, r401, r402, r403]
@@ -1685,44 +1768,17 @@ if __name__ == '__main__':
                 block = gene.get_block().get_block_code()
                 course = gene.get_course().get_code()
 
-                gene.get_block().get_schedule().set_final_sched(day, time_slot, course, room, prof)
-                gene.get_professor().get_schedule().set_final_sched(day, time_slot, course, room, block)
-                gene.get_class_slot_one(0).get_schedule().set_final_sched(day, course, time_slot, block, prof)
+                gene.get_block().get_schedule().set_final_sched(day, time_slot, course, prof, room)
+                gene.get_professor().get_schedule().set_final_sched(day, time_slot, course, block, room)
+                gene.get_class_slot_one(0).get_schedule().set_final_sched(day, time_slot, course, block, prof)
 
+            print("PROFESSORS SCHEDULE\n")
+            display_table(prof_list, "PROFESSOR")
+            print("BLOCKS SCHEDULE\n")
+            display_table(block_list, "BLOCK")
+            print("ROOM SCHEDULE\n")
+            display_table(room_list, "ROOM")
 
-            for i in range(len(prof_list)):
-                print("===========================================")
-                print("Professor ", i + 1)
-                print("Monday : ", prof_list[i].get_schedule().get_m())
-                print("Tuesday : ", prof_list[i].get_schedule().get_t())
-                print("Wednesday : ", prof_list[i].get_schedule().get_w())
-                print("Thursday : ", prof_list[i].get_schedule().get_th())
-                print("Friday : ", prof_list[i].get_schedule().get_f())
-                print("Saturday : ", prof_list[i].get_schedule().get_s())
-                print("schedule course : ", prof_list[i].get_schedule_course())
-                print("===========================================")
-
-            for i in range(len(block_list)):
-                print("===========================================")
-                print(block_list[i].get_block_code())
-                print("Monday : ", block_list[i].get_schedule().get_m())
-                print("Tuesday : ", block_list[i].get_schedule().get_t())
-                print("Wednesday : ", block_list[i].get_schedule().get_w())
-                print("Thursday : ", block_list[i].get_schedule().get_th())
-                print("Friday : ", block_list[i].get_schedule().get_f())
-                print("Saturday : ", block_list[i].get_schedule().get_s())
-                print("===========================================")
-
-            for i in range(len(room_list)):
-                print("===========================================")
-                print(room_list[i].get_code())
-                print("Monday : ", room_list[i].get_schedule().get_m())
-                print("Tuesday : ", room_list[i].get_schedule().get_t())
-                print("Wednesday : ", room_list[i].get_schedule().get_w())
-                print("Thursday : ", room_list[i].get_schedule().get_th())
-                print("Friday : ", room_list[i].get_schedule().get_f())
-                print("Saturday : ", room_list[i].get_schedule().get_s())
-                print("===========================================")
             not_perfect_schedule = False
 
         else:
