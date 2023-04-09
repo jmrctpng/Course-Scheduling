@@ -1,13 +1,10 @@
 from tabulate import tabulate
-import sys
 from typing import List
 import random
 import time
 import numpy as np
 import copy
 
-FITNESS_SCORES = []  # list of 10 current fitness scores
-BEST_FITNESS = 0
 PROF_MUTATE = None
 PROF_MUTATE1 = None
 BLOCK_MUTATE = None
@@ -187,12 +184,13 @@ class GeneticAlgorithm:
         """
 
         data = Data()
+
         for i in range(len(population_class.get_courses())):
             class_slot = population_class.get_class_slots().pop(
                 random.randrange(len(population_class.get_class_slots())))
             course = population_class.get_courses().pop(random.randrange(len(population_class.get_courses())))
-            #block = population_class.get_blocks().pop(random.randrange(len(population_class.get_blocks())))
-            #professor = population_class.get_professors().pop(random.randrange(len(population_class.get_professors())))
+            # block = population_class.get_blocks().pop(random.randrange(len(population_class.get_blocks())))
+            # professor = population_class.get_professors().pop(random.randrange(len(population_class.get_professors())))
 
             block = course.get_block()
             professor = course.get_prof()
@@ -276,6 +274,7 @@ class GeneticAlgorithm:
         if parent1.get_fitness_score() == 1:
             return None, None
         else:
+            # Determine which attributes can be improved
             attributes_to_improve = GeneticAlgorithm.check_attribute()
             if self.chromosome_size > 0:
                 best = self.parent_two(self.curr_chromosome.get_genes(), attributes_to_improve, parent1)
@@ -448,14 +447,10 @@ class GeneticAlgorithm:
                 item.get_professor().get_schedule().clear_and_add_new_sched(prev_day, item_orig_prof_sched2)
 
             if fitness_score == 1:
-                # return parent2.append([item, 1])
                 return item
             elif fitness_score > perfect_gene_score:
                 perfect_gene_found = item
                 perfect_gene_score = fitness_score
-            elif fitness_score < worst_gene_score:
-                worst_gene_found = item
-                worst_gene_score = fitness_score
 
             count -= 1
 
@@ -489,7 +484,7 @@ class GeneticAlgorithm:
 
         return fitness_score
 
-    def uniform_crossover(self, parent1, attribute,  parent2):
+    def uniform_crossover(self, parent1, attribute, parent2):
 
         parent1_copy = copy.copy(parent1)
         parent2_copy = copy.copy(parent2)
@@ -497,22 +492,23 @@ class GeneticAlgorithm:
         remove_prof_sched = False
         remove_block_sched = False
 
-        if 'cs' in attribute or 'r' in attribute or 'd' in attribute:
+        if 'cs' in attribute:
             parent1.set_class_slot(parent2_copy.get_class_slot())
             parent2.set_class_slot(parent1_copy.get_class_slot())
 
+            # get the previous time slot for parent 1 and parent 2
             p1_prev_time_slot = parent1_copy.get_class_slot_one(2)
             p1_prev_day = parent1_copy.get_class_slot_one(1)
             p2_prev_time_slot = parent2_copy.get_class_slot_one(2)
             p2_prev_day = parent2_copy.get_class_slot_one(1)
 
+            # get the new time slot for parent 1 and parent 2
             p1_new_time_slot = parent1.get_class_slot_one(2)
             p1_new_day = parent1.get_class_slot_one(1)
             p2_new_time_slot = parent2.get_class_slot_one(2)
             p2_new_day = parent2.get_class_slot_one(1)
 
-            # prof sched will change
-            # block sched will change
+            # prof and block sched will change
             parent1_copy.get_block().get_schedule().remove_sched(p1_prev_day, p1_prev_time_slot)
             parent1_copy.get_professor().get_schedule().remove_sched(p1_prev_day, p1_prev_time_slot)
             parent1.get_block().set_schedule(p1_new_day, p1_new_time_slot)
@@ -528,9 +524,11 @@ class GeneticAlgorithm:
 
         if 'p' in attribute:
 
+            # get the current course and alloted time for parent 1
             p1_course = parent1.get_course().get_code()
             p1_course_hour = parent1.get_course().get_hour()
 
+            # get the current course and alloted time for parent 2
             p2_course = parent2.get_course().get_code()
             p2_course_hour = parent2.get_course().get_hour()
 
@@ -655,14 +653,11 @@ class GeneticAlgorithm:
             self.add_to_new_chromosome(parent2)
             self.curr_chromosome.add_gene(parent1)
         elif parent1.get_fitness_score() > parent2.get_fitness_score():
-            #child = self.mutation(parent1)
             self.add_to_new_chromosome(parent1)
         elif parent1.get_fitness_score() < parent2.get_fitness_score():
             parent2_copy = copy.copy(parent2)
             self.curr_chromosome.pop_gene(self.curr_chromosome.get_position(parent2))
             self.curr_chromosome.add_gene(parent1)
-
-            # child = self.mutation(parent2_copy)
             self.add_to_new_chromosome(parent2_copy)
         else:
             # child = self.mutation(parent1)
@@ -674,7 +669,6 @@ class GeneticAlgorithm:
 
             child = random.choice(self.curr_chromosome.get_genes())
             if child.get_assigned_course_to_prof_fitness() == 0:
-
                 course = child.get_course().get_code()
                 course_hour = child.get_course().get_hour()
                 prev_prof = child.get_professor()
@@ -687,7 +681,7 @@ class GeneticAlgorithm:
                 prev_prof.get_schedule().remove_sched(prev_day, prev_time_slot)
                 child.get_professor().set_schedule(prev_day, prev_time_slot)
 
-                # magpapalit ang course handle
+                # change the assigned course
                 prev_prof.remove_schedule_course(course, course_hour)
                 child.get_professor().set_schedule_course(course, course_hour)
 
@@ -701,7 +695,6 @@ class GeneticAlgorithm:
             child = random.choice(self.curr_chromosome.get_genes())
 
             if child.get_assigned_course_to_block_fitness() == 0:
-
                 course = child.get_course().get_code()
                 course_hour = child.get_course().get_hour()
                 prev_block = child.get_block()
@@ -954,6 +947,7 @@ class Gene:
     def set_assigned_course_to_prof_fitness(self, value):
         self.assigned_course_to_prof_fitness = value
 
+
 class GeneFitness:
 
     def __init__(self, gene):
@@ -1031,7 +1025,6 @@ class GeneFitness:
     def course_slot_suitability(self):
         slot = self.gene.get_class_slot_one(2)
 
-        # print("length : ", len(slot) - 1, " hour : ", self.gene.course.get_hour())
         if len(slot) - 1 == self.gene.get_course().get_hour():
             self.gene.set_course_slot_suitability_fitness(1)
             return 1
@@ -1133,7 +1126,7 @@ class GeneFitness:
             self.gene.set_assigned_course_to_prof_fitness(1)
             return 1
         else:
-            self.gene.set_assigned_course_to_block_fitness(0)
+            self.gene.set_assigned_course_to_prof_fitness(0)
             return 0
 
     def assigned_course_to_block(self):
@@ -1189,9 +1182,6 @@ class LabCourse:
     def get_available_rooms(self):
         return self.available_rooms
 
-    def get_year(self):
-        return self.year
-
     def set_prof(self, value):
         self.prof = value
 
@@ -1222,9 +1212,6 @@ class LectureCourse:
 
     def get_available_rooms(self):
         return self.available_rooms
-
-    def get_year(self):
-        return self.year
 
     def set_prof(self, value):
         self.prof = value
@@ -1341,7 +1328,7 @@ class Population:
                         c = Data.find_lec_course(course)
                         c1 = copy.copy(c)
                         coure_wo_id = block.get_block_code().replace(" ", "")
-                        combine =  coure_wo_id + "_" + course
+                        combine = coure_wo_id + "_" + course
 
                         for prof in Data.professor:
                             for prof_course in prof.get_course_block():
@@ -1357,7 +1344,7 @@ class Population:
                         courses = Data.find_lab_course(course)
 
                         coure_wo_id = block.get_block_code().replace(" ", "")
-                        combine =  coure_wo_id + "_" + course
+                        combine = coure_wo_id + "_" + course
 
                         for prof in Data.professor:
                             for prof_course in prof.get_course_block():
@@ -1376,7 +1363,6 @@ class Population:
                                     c1.set_block(block)
 
                         break
-
 
     def generate_prof_population(self):
         data = Data()
@@ -1490,6 +1476,7 @@ def has_overlap_and_multiple_copies(time_slots, pattern):
 
     return False
 
+
 def has_no_lunch_break(pb_schedule):
     # Get all the sublists that contain a number between 10 and 14
     schedules = [schedule for schedule in pb_schedule if any(10 <= int(time) <= 14 for time in schedule)]
@@ -1528,7 +1515,8 @@ def convert_time(start_time, end_time):
     start_str = '{}:00 {}'.format(start_hour, start_suffix)
     end_str = '{}:00 {}'.format(end_hour, end_suffix)
 
-    return ('{} to {}'.format(start_str, end_str))
+    return '{} to {}'.format(start_str, end_str)
+
 
 def reformat_sched(lst):
     new_lst = []
@@ -1553,7 +1541,6 @@ def reformat_sched(lst):
 
 
 def display_table(lst, obj):
-
     for i in range(len(lst)):
 
         sched_row = []
@@ -1566,24 +1553,23 @@ def display_table(lst, obj):
         else:
             id = lst[i].get_code()
 
-        monday_sched  = sorted(lst[i].get_schedule().get_m(), key=lambda x: int(x[0][0]))
+        monday_sched = sorted(lst[i].get_schedule().get_m(), key=lambda x: int(x[0][0]))
         monday_sched = reformat_sched(monday_sched)
 
-        tuesday_sched  = sorted(lst[i].get_schedule().get_t(), key=lambda x: int(x[0][0]))
+        tuesday_sched = sorted(lst[i].get_schedule().get_t(), key=lambda x: int(x[0][0]))
         tuesday_sched = reformat_sched(tuesday_sched)
 
-        wednesday_sched  = sorted(lst[i].get_schedule().get_w(), key=lambda x: int(x[0][0]))
+        wednesday_sched = sorted(lst[i].get_schedule().get_w(), key=lambda x: int(x[0][0]))
         wednesday_sched = reformat_sched(wednesday_sched)
 
-        thursday_sched  = sorted(lst[i].get_schedule().get_th(), key=lambda x: int(x[0][0]))
+        thursday_sched = sorted(lst[i].get_schedule().get_th(), key=lambda x: int(x[0][0]))
         thursday_sched = reformat_sched(thursday_sched)
 
-        friday_sched  = sorted(lst[i].get_schedule().get_f(), key=lambda x: int(x[0][0]))
+        friday_sched = sorted(lst[i].get_schedule().get_f(), key=lambda x: int(x[0][0]))
         friday_sched = reformat_sched(friday_sched)
 
-        saturday_sched  = sorted(lst[i].get_schedule().get_s(), key=lambda x: int(x[0][0]))
+        saturday_sched = sorted(lst[i].get_schedule().get_s(), key=lambda x: int(x[0][0]))
         saturday_sched = reformat_sched(saturday_sched)
-
 
         list_lengths = [len(monday_sched), len(tuesday_sched), len(wednesday_sched), len(thursday_sched),
                         len(friday_sched), len(saturday_sched)]
@@ -1606,6 +1592,7 @@ def display_table(lst, obj):
         print(tabulate(data, headers=["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
                        tablefmt="pretty"))
         print("\n\n")
+
 
 if __name__ == '__main__':
     meetingTime = ["07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
@@ -1718,19 +1705,32 @@ if __name__ == '__main__':
     Data.add_prof(p10)
 
     # Some code here
-
     start_time = time.time()
     population = Population()
     population.initialize_population(meetingTime, day)
     end_time = time.time()
 
+    elapsed_time = end_time - start_time
+    print("---------------------------------------------------------------------")
+    print("Class-slot population size : ", len(population.get_class_slots()))
+    print("Professor population size : ", len(population.get_professors()))
+    print("Block population size : ", len(population.get_blocks()))
+    print("Course population size : ", len(population.get_courses()))
+    print("---------------------------------------------------------------------")
+    print(f"Population initialization elapsed time: {elapsed_time} seconds")
+
+    start_time = time.time()
     genetic_algo = GeneticAlgorithm()
     genetic_algo.encode_chromosome(population)
+    end_time = time.time()
+
+    print(f"Encoding Chromosome elapsed time: {elapsed_time} seconds")
 
     count = 0
     not_perfect_schedule = True
     generation = 0
 
+    start_time = time.time()
     while not_perfect_schedule:
 
         chromosome_fit = genetic_algo.calculate_fit()
@@ -1738,16 +1738,15 @@ if __name__ == '__main__':
         MEMOIZATION = False
         generation = generation + 1
 
-        print("Generation " + str(count) + " fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
-
-        if chromosome_fit > BEST_FITNESS:
-            BEST_FITNESS = chromosome_fit
+        # print("Generation " + str(count) + " fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
 
         count = count + 1
         if chromosome_fit == 1:
+            end_time = time.time()
+            print(f"Finding Best Schedule elapsed time: {elapsed_time} seconds")
 
             print("---------------------------------------------------------------------")
-            print("Solution found after ", generation, " generation")
+            print("Solution found at generation", generation-1)
             print("Fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
             print("---------------------------------------------------------------------\n\n")
 
@@ -1810,7 +1809,6 @@ if __name__ == '__main__':
                         genetic_algo.prof_mutation()
                 else:
                     print("PARENT 1 IS NONE")
-
 
                 if genetic_algo.get_chromosome_size() == 0:
                     genetic_algo.add_new_chromosome()
