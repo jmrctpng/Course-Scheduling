@@ -1733,7 +1733,6 @@ def generate_block_list(df):
                 i += 1
         block_list.append([id, enrolled_students, subjects, year])
 
-
     for block in block_list:
         block = Block(block[0], block[1], block[2], block[3])
         Data.add_block(block)
@@ -1741,27 +1740,30 @@ def generate_block_list(df):
 
 
 def generate_professor_list(df):
-
     prof_list = []
 
-    # loop through the columns
-    for col in df.columns:
-        course = []
-        # loop through the cells in the column
-        for val in df[col]:
-            # check if the value is not nan
-            if not pd.isna(val):
-                course_handle = val
-                course_with_assigned_block = assign_section(course_handle)
-                course.append(course_with_assigned_block)
+    # iterate through each row and column to access cell values
+    for index, row in df.iterrows():
 
-        prof_list.append([col, course])
+        i = 0
+        id = ""
+        subjects = []
+
+        for col in df.columns:
+            cell = row[col]
+            if not pd.isna(cell):
+                if i == 0:
+                    id = cell
+                else:
+                    course_with_assigned_block = assign_section(cell)
+                    subjects.append(course_with_assigned_block)
+                i += 1
+        prof_list.append([id, subjects])
 
     for prof in prof_list:
         prof = Professor(prof[0], prof[1])
         Data.add_prof(prof)
         PROF_LIST.append(prof)
-
 
 
 if __name__ == '__main__':
