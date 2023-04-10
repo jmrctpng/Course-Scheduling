@@ -1,9 +1,13 @@
+import sys
+
 from tabulate import tabulate
 from typing import List
 import random
 import time
 import numpy as np
 import copy
+import pandas as pd
+
 
 PROF_MUTATE = None
 PROF_MUTATE1 = None
@@ -15,10 +19,12 @@ BL_CACHE = []
 PWL_CACHE = []
 MEMOIZATION = True
 
-LAB_COURSE = ['CS 121', 'CS 111', 'CS 131']
-REG_COURSE = ['FILI 102', 'GEd 105', 'GEd 108', 'MATH 401', 'MATH 407', 'MATH 111', 'GEd 109']
-PROFESSOR = []
-BLOCK = []
+PROF_LIST = []
+BLOCK_LIST = []
+ROOM_LIST = []
+
+LAB_COURSE = []
+REG_COURSE = []
 
 
 class Data:
@@ -1269,6 +1275,7 @@ class Block:
         self.block_code = block_code
         self.enrolled_students = enrolled_students
         self.courses = courses
+        self.copy_courses = copy.copy(courses)
         self.schedule_course = []
         self.year = year
         self.schedule = Schedule()
@@ -1303,6 +1310,12 @@ class Block:
     def change_course_sched(self, sched):
         self.schedule_course = copy.copy(sched)
 
+    def remove_course(self, course):
+        self.copy_courses.remove(course)
+
+    def get_copy_courses(self):
+        return self.copy_courses
+
 
 class Population:
     def __init__(self):
@@ -1313,8 +1326,8 @@ class Population:
         self.class_slots = []
 
     def initialize_population(self, meetingTime, meetingDay):
-        self.generate_course_block_population()
         self.generate_prof_population()
+        self.generate_course_block_population()
         self.generate_class_slot_population(meetingTime, meetingDay)
 
     def generate_course_block_population(self):
@@ -1366,7 +1379,6 @@ class Population:
 
     def generate_prof_population(self):
         data = Data()
-
         for prof in data.professor:
             for course in prof.get_course_code_handle():
                 for data_lec_course in Data.lec_course:
@@ -1594,115 +1606,189 @@ def display_table(lst, obj):
         print("\n\n")
 
 
+def assign_section(course_code):
+    blocks = Data.block
+
+    for block in blocks:
+        for course in block.get_copy_courses():
+            if course == course_code:
+                block.remove_course(course)
+                id = block.get_block_code().upper().replace(" ", "") + "_" + course
+                return id
+
+
+def generate_lab_subjects(df):
+    lab_subj = []
+
+    # iterate through each row and column to access cell values
+    for index, row in df.iterrows():
+
+        i = 0
+        id = ""
+        hours = 0
+        rooms = []
+
+        for col in df.columns:
+            cell = row[col]
+            if not pd.isna(cell):
+                if i == 0:
+                    id = cell
+                elif i == 1:
+                    hours = cell
+                else:
+                    rooms.append(cell)
+                i += 1
+
+        lab_subj.append([id, hours, rooms])
+
+    for subj in lab_subj:
+        subj = LabCourse(subj[0], subj[1], subj[2])
+        Data.add_lab_course(subj)
+        LAB_COURSE.append(subj.get_code())
+
+
+def generate_class_room(df):
+    rooms = []
+
+    # iterate through each row and column to access cell values
+    for index, row in df.iterrows():
+
+        i = 0
+        id = ""
+        capacity = 0
+        type = ""
+
+        for col in df.columns:
+            cell = row[col]
+            if not pd.isna(cell):
+                if i == 0:
+                    id = cell
+                elif i == 1:
+                    capacity = cell
+                elif i == 2:
+                    type = cell
+                i += 1
+
+        rooms.append([id, capacity, type])
+
+    for room in rooms:
+        r = ClassRoom(room[0], room[1], room[2])
+        Data.add_room(r)
+        ROOM_LIST.append(r)
+
+
+def generate_regular_subjects(df):
+    reg_subj = []
+
+    # iterate through each row and column to access cell values
+    for index, row in df.iterrows():
+
+        i = 0
+        id = ""
+        hours = 0
+        rooms = []
+
+        for col in df.columns:
+            cell = row[col]
+            if not pd.isna(cell):
+                if i == 0:
+                    id = cell
+                elif i == 1:
+                    hours = cell
+                else:
+                    rooms.append(cell)
+                i += 1
+
+        reg_subj.append([id, hours, rooms])
+
+    for subj in reg_subj:
+        subj = LectureCourse(subj[0], subj[1], subj[2])
+        Data.add_lec_course(subj)
+        REG_COURSE.append(subj.get_code())
+
+def generate_block_list(df):
+
+    block_list = []
+
+    # iterate through each row and column to access cell values
+    for index, row in df.iterrows():
+
+        i = 0
+        id = ""
+        enrolled_students = 0
+        year = 0
+        subjects = []
+
+        for col in df.columns:
+            cell = row[col]
+            if not pd.isna(cell):
+                if i == 0:
+                    id = cell
+                elif i == 1:
+                    enrolled_students = cell
+                elif i == 2:
+                    year = cell
+                else:
+                    subjects.append(cell)
+                i += 1
+        block_list.append([id, enrolled_students, subjects, year])
+
+
+    for block in block_list:
+        block = Block(block[0], block[1], block[2], block[3])
+        Data.add_block(block)
+        BLOCK_LIST.append(block)
+
+
+def generate_professor_list(df):
+
+    prof_list = []
+
+    # loop through the columns
+    for col in df.columns:
+        course = []
+        # loop through the cells in the column
+        for val in df[col]:
+            # check if the value is not nan
+            if not pd.isna(val):
+                course_handle = val
+                course_with_assigned_block = assign_section(course_handle)
+                course.append(course_with_assigned_block)
+
+        prof_list.append([col, course])
+
+    for prof in prof_list:
+        prof = Professor(prof[0], prof[1])
+        Data.add_prof(prof)
+        PROF_LIST.append(prof)
+
+
+
 if __name__ == '__main__':
     meetingTime = ["07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
     day = ["M", "T", "W", "Th", "F"]
 
-    sl1 = ClassRoom("SL1", 50, "Laboratory")
-    sl2 = ClassRoom("SL2", 50, "Laboratory")
-    sl3 = ClassRoom("SL3", 50, "Laboratory")
-    cisco = ClassRoom("CISCO", 50, "Laboratory")
-    ml = ClassRoom("ML", 50, "Laboratory")
-    itl = ClassRoom("ITL", 50, "Laboratory")
-    edl = ClassRoom("EDL", 50, "Laboratory")
-    r102 = ClassRoom("102", 50, "Regular")
-    r103 = ClassRoom("103", 50, "Regular")
-    r104 = ClassRoom("104", 50, "Regular")
-    r201 = ClassRoom("201", 50, "Regular")
-    r202 = ClassRoom("202", 50, "Regular")
-    r203 = ClassRoom("203", 50, "Regular")
-    r401 = ClassRoom("401", 50, "Regular")
-    r402 = ClassRoom("402", 50, "Regular")
-    r403 = ClassRoom("403", 50, "Regular")
 
-    Data.add_room(sl1)
-    Data.add_room(sl2)
-    Data.add_room(sl3)
-    Data.add_room(cisco)
-    Data.add_room(ml)
-    Data.add_room(itl)
-    Data.add_room(edl)
-    Data.add_room(r102)
-    Data.add_room(r103)
-    Data.add_room(r104)
-    Data.add_room(r201)
-    Data.add_room(r202)
-    Data.add_room(r203)
-    Data.add_room(r401)
-    Data.add_room(r402)
-    Data.add_room(r403)
+    # read the csv file
+    room_df = pd.read_csv('rooms.csv')
+    generate_class_room(room_df)
 
-    Data.add_lab_course(LabCourse("CS 121", 3, ["SL1", "SL2", "SL3", "ML"]))
-    Data.add_lab_course(LabCourse("CS 111", 3, ["SL1", "SL2", "SL3", "ML"]))
-    Data.add_lab_course(LabCourse("CS 131", 3, ["SL1", "SL2", "SL3", "ML", "ITL"]))
+    # read the csv file
+    lab_df = pd.read_csv('lab_course.csv')
+    generate_lab_subjects(lab_df)
 
-    Data.add_lab_course(
-        LabCourse("CS 121", 2, ["101", "102", "103", "104", "201", "202", "203", "EDL", "401", "402", "403"]))
-    Data.add_lab_course(
-        LabCourse("CS 111", 2, ["101", "102", "103", "104", "201", "202", "203", "EDL", "401", "402", "403"]))
-    Data.add_lab_course(
-        LabCourse("CS 131", 2, ["101", "102", "103", "104", "201", "202", "203", "EDL", "401", "402", "403"]))
+    # read the csv file
+    reg_df = pd.read_csv('reg_course.csv')
+    generate_regular_subjects(reg_df)
 
-    Data.add_lec_course(
-        LectureCourse("FILI 102", 3, ["101", "102", "103", "104", "201", "202", "203", "EDL", "401", "402", "403"]))
-    Data.add_lec_course(
-        LectureCourse("GEd 105", 3, ["101", "102", "103", "104", "201", "202", "203", "EDL", "401", "402", "403"]))
-    Data.add_lec_course(
-        LectureCourse("GEd 108", 3, ["101", "102", "103", "104", "201", "202", "203", "EDL", "401", "402", "403"]))
-    Data.add_lec_course(
-        LectureCourse("MATH 401", 3, ["101", "102", "103", "104", "201", "202", "203", "EDL", "401", "402", "403"]))
-    Data.add_lec_course(
-        LectureCourse("MATH 407", 3, ["101", "102", "103", "104", "201", "202", "203", "EDL", "401", "402", "403"]))
-    Data.add_lec_course(
-        LectureCourse("MATH 111", 3, ["101", "102", "103", "104", "201", "202", "203", "EDL", "401", "402", "403"]))
-    Data.add_lec_course(
-        LectureCourse("GEd 109", 3, ["101", "102", "103", "104", "201", "202", "203", "EDL", "401", "402", "403"]))
+    # read the csv file
+    block_df = pd.read_csv('blocks_data.csv')
+    generate_block_list(block_df)
 
-    cs1201 = Block("CS 1201", 40, ["CS 121", "FILI 102", "GEd 105", "GEd 108", "MATH 401", "MATH 407"], 1)
-    cs1202 = Block("CS 1202", 45, ["CS 121", "FILI 102", "GEd 105", "GEd 108", "MATH 401", "MATH 407"], 1)
-    cs1203 = Block("CS 1203", 43, ["CS 121", "FILI 102", "GEd 105", "GEd 108", "MATH 401", "MATH 407"], 1)
-    it1201 = Block("IT 1201", 50, ["CS 111", "CS 131", "MATH 111", "FILI 102", "GEd 105", "GEd 109"], 1)
-    it1202 = Block("IT 1202", 45, ["CS 111", "CS 131", "MATH 111", "FILI 102", "GEd 105", "GEd 109"], 1)
-    it1203 = Block("IT 1203", 40, ["CS 111", "CS 131", "MATH 111", "FILI 102", "GEd 105", "GEd 109"], 1)
-    it1204 = Block("IT 1204", 45, ["CS 111", "CS 131", "MATH 111", "FILI 102", "GEd 105", "GEd 109"], 1)
-    it1205 = Block("IT 1205", 45, ["CS 111", "CS 131", "MATH 111", "FILI 102", "GEd 105", "GEd 109"], 1)
-    it1206 = Block("IT 1206", 40, ["CS 111", "CS 131", "MATH 111", "FILI 102", "GEd 105", "GEd 109"], 1)
+    # read the csv file
+    prof_df = pd.read_csv('professors.csv')
+    generate_professor_list(prof_df)
 
-    Data.add_block(cs1201)
-    Data.add_block(cs1202)
-    Data.add_block(cs1203)
-    Data.add_block(it1201)
-    Data.add_block(it1202)
-    Data.add_block(it1203)
-    Data.add_block(it1204)
-    Data.add_block(it1205)
-    Data.add_block(it1206)
-
-    p1 = Professor("P1", ["CS1201_CS 121", "CS1202_CS 121", "CS1201_MATH 401", "IT1201_CS 111", "IT1201_GEd 109"])
-    p2 = Professor("P2", ["CS1203_CS 121", "CS1201_FILI 102", "CS1201_GEd 108", "IT1206_MATH 111", "IT1201_MATH 111"])
-    p3 = Professor("P3", ["CS1202_FILI 102", "CS1203_MATH 401", "IT1202_CS 111", "IT1203_CS 111", "IT1202_GEd 109"])
-    p4 = Professor("P4", ["IT1201_FILI 102", "CS1201_MATH 407", "CS1202_MATH 407", "IT1202_MATH 111", "IT1205_GEd 109",
-                          "IT1206_GEd 109"])
-    p5 = Professor("P5", ["CS1201_GEd 105", "IT1201_CS 131", "IT1202_CS 131", "IT1203_FILI 102", "CS1202_GEd 105",
-                          "CS1203_GEd 105"])
-    p6 = Professor("P6", ["IT1201_GEd 105", "IT1202_GEd 105", "IT1203_CS 131", "IT1205_CS 131", "IT1203_MATH 111",
-                          "IT1203_GEd 105"])
-    p7 = Professor("P7", ["IT1205_CS 111", "IT1206_CS 131", "CS1203_FILI 102", "IT1202_FILI 102", "IT1203_GEd 109"])
-    p8 = Professor("P8", ["CS1202_GEd 108", "CS1203_GEd 108", "IT1204_CS 111", "IT1204_FILI 102", "IT1204_GEd 109"])
-    p9 = Professor("P9", ["CS1202_MATH 401", "IT1204_CS 131", "IT1204_MATH 111", "IT1205_FILI 102", "IT1206_FILI 102"])
-    p10 = Professor("P10", ["CS1203_MATH 407", "IT1206_CS 111", "IT1205_MATH 111", "IT1204_GEd 105", "IT1205_GEd 105",
-                            "IT1206_GEd 105"])
-
-    Data.add_prof(p1)
-    Data.add_prof(p2)
-    Data.add_prof(p3)
-    Data.add_prof(p4)
-    Data.add_prof(p5)
-    Data.add_prof(p6)
-    Data.add_prof(p7)
-    Data.add_prof(p8)
-    Data.add_prof(p9)
-    Data.add_prof(p10)
 
     # Some code here
     start_time = time.time()
@@ -1724,7 +1810,11 @@ if __name__ == '__main__':
     genetic_algo.encode_chromosome(population)
     end_time = time.time()
 
+    elapsed_time = end_time - start_time
+
+
     print(f"Encoding Chromosome elapsed time: {elapsed_time} seconds")
+
 
     count = 0
     not_perfect_schedule = True
@@ -1743,16 +1833,14 @@ if __name__ == '__main__':
         count = count + 1
         if chromosome_fit == 1:
             end_time = time.time()
+            elapsed_time = end_time - start_time
+
             print(f"Finding Best Schedule elapsed time: {elapsed_time} seconds")
 
             print("---------------------------------------------------------------------")
-            print("Solution found at generation", generation-1)
+            print("Solution found at generation", generation - 1)
             print("Fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
             print("---------------------------------------------------------------------\n\n")
-
-            prof_list = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10]
-            room_list = [sl1, sl2, sl3, cisco, ml, itl, edl, r102, r103, r104, r201, r202, r203, r401, r402, r403]
-            block_list = [cs1201, cs1202, cs1203, it1201, it1202, it1203, it1204, it1205, it1206]
 
             if len(GeneticAlgoPopulation.chromosome) == 1:
                 genetic_algo.curr_chromosome = GeneticAlgoPopulation.chromosome[0]
@@ -1761,11 +1849,11 @@ if __name__ == '__main__':
 
             # delete all sched
 
-            for professor in prof_list:
+            for professor in PROF_LIST:
                 professor.get_schedule().clear_all_sched()
-            for r in room_list:
+            for r in ROOM_LIST:
                 r.get_schedule().clear_all_sched()
-            for b in block_list:
+            for b in BLOCK_LIST:
                 b.get_schedule().clear_all_sched()
 
             # set new sched from genes found
@@ -1782,11 +1870,11 @@ if __name__ == '__main__':
                 gene.get_class_slot_one(0).get_schedule().set_final_sched(day, time_slot, course, block, prof)
 
             print("PROFESSORS SCHEDULE\n")
-            display_table(prof_list, "PROFESSOR")
+            display_table(PROF_LIST, "PROFESSOR")
             print("BLOCKS SCHEDULE\n")
-            display_table(block_list, "BLOCK")
+            display_table(BLOCK_LIST, "BLOCK")
             print("ROOM SCHEDULE\n")
-            display_table(room_list, "ROOM")
+            display_table(ROOM_LIST, "ROOM")
 
             not_perfect_schedule = False
 
