@@ -291,9 +291,9 @@ class GeneticAlgorithm:
 
     @staticmethod
     def check_attribute():
-        my_list = ['c', 'cs', 'p', 'b']
+        my_list = ['cs', 'cs']
 
-        num_elements = random.randint(1, 3)  # Randomly choose number of elements (1-3)
+        num_elements = random.randint(1, 2)  # Randomly choose number of elements (1-3)
         search_attribute = random.sample(my_list, num_elements)  # Randomly select elements from the list
 
         return search_attribute
@@ -304,7 +304,6 @@ class GeneticAlgorithm:
 
         perfect_gene_found = None
         perfect_gene_score = 0
-        worst_gene_score = 1
         prev_time_slot = parent1.get_class_slot_one(2)
         prev_day = parent1.get_class_slot_one(1)
 
@@ -669,6 +668,7 @@ class GeneticAlgorithm:
             # child = self.mutation(parent1)
             self.add_to_new_chromosome(parent1)
 
+
     def prof_mutation(self):
 
         if self.chromosome_size != 0:
@@ -721,15 +721,47 @@ class GeneticAlgorithm:
                 fitness_score = GeneticAlgorithm.fitness_value(fitness)
                 child.add_fitness_score(fitness_score)
 
-    def mutation(self, child):
+    def cs_mutation(self):
 
-        attribute = GeneticAlgorithm.check_attribute()
+        if self.chromosome_size != 0:
+
+            child = random.choice(self.curr_chromosome.get_genes())
+            child_copy = copy.copy(child)
+            prev_time_slot = child_copy.get_class_slot_one(2)
+            prev_day = child_copy.get_class_slot_one(1)
+
+            if len(self.class_slot_population) > 0:
+                if child.get_professor_work_load_fitness() == 0 or child.get_room_availability_fitness() == 0 or child.get_block_availability_fitness() == 0 or child.get_prof_lunch_break_fitness() == 0 or child.get_block_lunch_break_fitness() == 0 or child.get_working_hours_fitness() == 0:
+
+                    random_class_slot = self.class_slot_population.pop(
+                        random.randrange(len(self.class_slot_population)))
+
+                    child_class_slot = child.get_class_slot()
+                    self.class_slot_population.append(child_class_slot)
+
+                    child.set_class_slot(random_class_slot)
+
+                    new_time_slot = child.get_class_slot_one(2)
+                    new_day = child.get_class_slot_one(1)
+
+                    child_copy.get_class_slot_one(0).get_schedule().remove_sched(prev_day, prev_time_slot)
+                    child_copy.get_block().get_schedule().remove_sched(prev_day, prev_time_slot)
+                    child_copy.get_professor().get_schedule().remove_sched(prev_day, prev_time_slot)
+                    child.get_block().set_schedule(new_day, new_time_slot)
+                    child.get_professor().set_schedule(new_day, new_time_slot)
+                    child.get_class_slot_one(0).set_schedule(new_day, new_time_slot)
+
+                    fitness = GeneFitness(child)
+                    fitness_score = GeneticAlgorithm.fitness_value(fitness)
+                    child.add_fitness_score(fitness_score)
+
+    def mutation(self, child):
 
         child_copy = copy.copy(child)
         prev_time_slot = child_copy.get_class_slot_one(2)
         prev_day = child_copy.get_class_slot_one(1)
 
-        if 'cs' in attribute:
+        if child.get_professor_work_load_fitness() == 0 or child.get_room_availability_fitness() == 0 or child.get_block_availability_fitness() == 0 or child.get_prof_lunch_break_fitness() == 0 or child.get_block_lunch_break_fitness() == 0 or child.get_working_hours_fitness() == 0 or child.get_course_slot_suitability_fitness() == 0 or child.get_room_suitability_fitness() == 0:
 
             if len(self.class_slot_population) > 0:
                 random_class_slot = self.class_slot_population.pop(
@@ -773,6 +805,9 @@ class Chromosome:
 
     def add_gene(self, gene):
         self.genes.append(gene)
+
+    def add_all_genes(self, genes):
+        self.genes = genes
 
     def get_genes(self):
         return self.genes
@@ -1791,7 +1826,6 @@ if __name__ == '__main__':
     prof_df = pd.read_csv('professors.csv')
     generate_professor_list(prof_df)
 
-
     # Some code here
     start_time = time.time()
     population = Population()
@@ -1817,37 +1851,46 @@ if __name__ == '__main__':
 
     print(f"Encoding Chromosome elapsed time: {elapsed_time} seconds")
 
-
     count = 0
+    best_generation_fitness_score = 0
+    best_generation_index = 0
+    best = None
     not_perfect_schedule = True
     generation = 0
 
+
     start_time = time.time()
     while not_perfect_schedule:
+        g_start_time = time.time()
 
         chromosome_fit = genetic_algo.calculate_fit()
         new_chromosome = True
         MEMOIZATION = False
         generation = generation + 1
 
-        # print("Generation " + str(count) + " fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
+        print(str(chromosome_fit) + ",")
 
+        if chromosome_fit > best_generation_fitness_score:
+            best = copy.copy(genetic_algo.curr_chromosome.get_genes())
+            best_generation_fitness_score = chromosome_fit
+            best_generation_index = generation
+
+        # print("Generation " + str(count) + " fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
+        # print("Generation Fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
         count = count + 1
-        if chromosome_fit == 1:
+        if chromosome_fit == 1 or generation == 1200:
             end_time = time.time()
             elapsed_time = end_time - start_time
+
+            best_chromosome = Chromosome()
+            best_chromosome.add_all_genes(best)
 
             print(f"Finding Best Schedule elapsed time: {elapsed_time} seconds")
 
             print("---------------------------------------------------------------------")
-            print("Solution found at generation", generation - 1)
-            print("Fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
+            print("Solution found at generation", best_generation_index)
+            print("Fitness score : ", best_generation_fitness_score)
             print("---------------------------------------------------------------------\n\n")
-
-            if len(GeneticAlgoPopulation.chromosome) == 1:
-                genetic_algo.curr_chromosome = GeneticAlgoPopulation.chromosome[0]
-            else:
-                genetic_algo.curr_chromosome = GeneticAlgoPopulation.chromosome[-1]
 
             # delete all sched
 
@@ -1859,13 +1902,44 @@ if __name__ == '__main__':
                 b.get_schedule().clear_all_sched()
 
             # set new sched from genes found
-            for gene in genetic_algo.curr_chromosome.get_genes():
+            for gene in best_chromosome.get_genes():
                 day = gene.get_class_slot_one(1)
                 time_slot = gene.get_class_slot_one(2)
                 room = gene.get_class_slot_one(0).get_code()
                 prof = gene.get_professor().get_prof_id()
                 block = gene.get_block().get_block_code()
                 course = gene.get_course().get_code()
+
+                if gene.get_first_year_fitness() == 2:
+                    first_year = 1
+                else:
+                    first_year = gene.get_first_year_fitness()
+
+                print("Gene ID : ", gene)
+                print("Class slot: ", gene.get_class_slot_one(0).get_code(), " ",
+                      gene.get_class_slot_one(0).get_capacity(), " ",
+                      gene.get_class_slot_one(0).get_type_of_room(), " ", gene.get_class_slot_one(1), " ",
+                      gene.get_class_slot_one(2))
+                print("Course code: ", gene.get_course().get_code())
+                print("assigned prof: ", gene.get_course().get_prof().get_prof_id())
+                print("assigned block: ", gene.get_course().get_block().get_block_code())
+                print("Course hr : ", gene.get_course().get_hour())
+                print("Professor: ", gene.get_professor().get_prof_id())
+                print("Block: ", gene.get_block().get_block_code())
+                print("Score :", gene.get_fitness_score())
+                print("CR :", gene.get_classroom_capacity_fitness())
+                print("PW :", gene.get_professor_work_load_fitness())
+                print("RA :", gene.get_room_availability_fitness())
+                print("FF :", first_year)
+                print("BA :", gene.get_block_availability_fitness())
+                print("RS :", gene.get_room_suitability_fitness())
+                print("CSS :", gene.get_course_slot_suitability_fitness())
+                print("PL :", gene.get_prof_lunch_break_fitness())
+                print("BL :", gene.get_block_lunch_break_fitness())
+                print("WH :", gene.get_working_hours_fitness())
+                print("ACP :", gene.get_assigned_course_to_prof_fitness())
+                print("ACB :", gene.get_assigned_course_to_block_fitness())
+                print("=======================================")
 
                 gene.get_block().get_schedule().set_final_sched(day, time_slot, course, prof, room)
                 gene.get_professor().get_schedule().set_final_sched(day, time_slot, course, block, room)
@@ -1892,11 +1966,13 @@ if __name__ == '__main__':
                     elif parent2 == 0 and attribute == 0:
                         child = genetic_algo.mutation(parent1)
                         genetic_algo.add_to_new_chromosome(child)
+                        #genetic_algo.block_mutation()
+                        #genetic_algo.prof_mutation()
                     else:
                         genetic_algo.uniform_crossover(parent1, attribute, parent2)
 
-                        genetic_algo.block_mutation()
-                        genetic_algo.prof_mutation()
+                        #genetic_algo.block_mutation()
+                        #genetic_algo.prof_mutation()
                 else:
                     print("PARENT 1 IS NONE")
 
@@ -1909,3 +1985,9 @@ if __name__ == '__main__':
 
                     MEMOIZATION = True
                     new_chromosome = False
+
+                    g_end_time = time.time()
+                    g_elapsed_time = g_end_time - g_start_time
+                    # print(f"Elapsed time: {g_elapsed_time} seconds")
+
+
