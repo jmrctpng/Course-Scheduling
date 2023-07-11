@@ -1,5 +1,3 @@
-import sys
-
 from tabulate import tabulate
 from typing import List
 import random
@@ -7,7 +5,6 @@ import time
 import numpy as np
 import copy
 import pandas as pd
-
 
 PROF_MUTATE = None
 PROF_MUTATE1 = None
@@ -195,8 +192,6 @@ class GeneticAlgorithm:
             class_slot = population_class.get_class_slots().pop(
                 random.randrange(len(population_class.get_class_slots())))
             course = population_class.get_courses().pop(random.randrange(len(population_class.get_courses())))
-            # block = population_class.get_blocks().pop(random.randrange(len(population_class.get_blocks())))
-            # professor = population_class.get_professors().pop(random.randrange(len(population_class.get_professors())))
 
             block = course.get_block()
             professor = course.get_prof()
@@ -238,7 +233,6 @@ class GeneticAlgorithm:
         sum = 0
         self.chromosome_size = len(self.curr_chromosome.get_genes())
 
-        # calculate gene fitness score
         # calculate gene fitness score
         for gene in self.curr_chromosome.get_genes():
             gene_fitness = GeneFitness(gene)
@@ -282,21 +276,24 @@ class GeneticAlgorithm:
         else:
             # Determine which attributes can be improved
             attributes_to_improve = GeneticAlgorithm.check_attribute()
-            if self.chromosome_size > 0:
-                best = self.parent_two(self.curr_chromosome.get_genes(), attributes_to_improve, parent1)
 
-                return best, attributes_to_improve
+            choices = [0,1]
+            probabilities = [0.60, 0.40]
+
+            res = random.choices(choices, probabilities)
+
+            if res[0] == 0:
+                if self.chromosome_size > 0:
+                    best = self.parent_two(self.curr_chromosome.get_genes(), attributes_to_improve, parent1)
+                    return best, attributes_to_improve
+                else:
+                    return 0, 0
             else:
-                return 0, 0
+                return 0,0
 
     @staticmethod
     def check_attribute():
-        my_list = ['cs', 'cs']
-
-        num_elements = random.randint(1, 2)  # Randomly choose number of elements (1-3)
-        search_attribute = random.sample(my_list, num_elements)  # Randomly select elements from the list
-
-        return search_attribute
+        return ['cs']
 
     def parent_two(self, items, attribute, parent1):
 
@@ -319,8 +316,6 @@ class GeneticAlgorithm:
             item = items.pop(random.randrange(count))
 
             different_day = False
-            remove_prof_sched = False
-            remove_block_sched = False
 
             parent1_copy = copy.copy(parent1)
             item_prev_day = item.get_class_slot_one(1)
@@ -352,85 +347,8 @@ class GeneticAlgorithm:
                 parent1_copy.get_block().get_schedule().remove_sched(prev_day, prev_time_slot)
                 parent1_copy.get_professor().get_schedule().remove_sched(prev_day, prev_time_slot)
 
-                remove_prof_sched = True
-                remove_block_sched = True
-
                 parent1_copy.get_block().set_schedule(new_day, new_time_slot)
                 parent1_copy.get_professor().set_schedule(new_day, new_time_slot)
-
-            if "c" in attribute:
-                p1_course = parent1_copy.get_course()
-                prev_course = parent1_copy.get_course().get_code()
-                prev_course_hr = parent1_copy.get_course().get_hour()
-
-                parent1_copy.set_course(item.get_course())
-                item.set_course(p1_course)
-
-                new_course = parent1_copy.get_course().get_code()
-                new_course_hr = parent1_copy.get_course().get_hour()
-
-                parent1_copy.get_professor().remove_schedule_course(prev_course, prev_course_hr)
-                parent1_copy.get_professor().set_schedule_course(new_course, new_course_hr)
-                item.get_professor().remove_schedule_course(new_course, new_course_hr)
-                item.get_professor().set_schedule_course(prev_course, prev_course_hr)
-
-                parent1_copy.get_block().remove_schedule_course(prev_course, prev_course_hr)
-                parent1_copy.get_block().set_schedule_course(new_course, new_course_hr)
-                item.get_block().remove_schedule_course(new_course, new_course_hr)
-                item.get_block().set_schedule_course(prev_course, prev_course_hr)
-
-            if "p" in attribute:
-
-                item_course = item.get_course().get_code()
-                item_course_hr = item.get_course().get_hour()
-
-                parent1_copy.set_professor(item.get_professor())
-
-                curr_course = parent1_copy.get_course().get_code()
-                curr_course_hr = parent1_copy.get_course().get_hour()
-
-                new_time_slot = parent1_copy.get_class_slot_one(2)
-                new_day = parent1_copy.get_class_slot_one(1)
-
-                if not remove_prof_sched:
-                    parent1.get_professor().get_schedule().remove_sched(prev_day, prev_time_slot)
-                    parent1_copy.get_professor().set_schedule(new_day, new_time_slot)
-
-                else:
-                    curr_time_slot = parent1_copy.get_class_slot_one(2)
-                    curr_day = parent1_copy.get_class_slot_one(1)
-
-                    parent1.get_professor().get_schedule().remove_sched(curr_day, curr_time_slot)
-                    parent1_copy.get_professor().set_schedule(curr_day, curr_time_slot)
-
-                item.get_professor().remove_schedule_course(item_course, item_course_hr)
-                parent1_copy.get_professor().set_schedule_course(curr_course, curr_course_hr)
-
-            if "b" in attribute:
-
-                item_course = item.get_course().get_code()
-                item_course_hr = item.get_course().get_hour()
-
-                parent1_copy.set_block(item.get_block())
-
-                curr_course = parent1_copy.get_course().get_code()
-                curr_course_hr = parent1_copy.get_course().get_hour()
-
-                new_time_slot = parent1_copy.get_class_slot_one(2)
-                new_day = parent1_copy.get_class_slot_one(1)
-
-                if not remove_block_sched:
-                    parent1.get_block().get_schedule().remove_sched(prev_day, prev_time_slot)
-                    parent1_copy.get_block().set_schedule(new_day, new_time_slot)
-                else:
-                    curr_time_slot = parent1_copy.get_class_slot_one(2)
-                    curr_day = parent1_copy.get_class_slot_one(1)
-
-                    parent1.get_block().get_schedule().remove_sched(curr_day, curr_time_slot)
-                    parent1_copy.get_block().set_schedule(curr_day, curr_time_slot)
-
-                item.get_block().remove_schedule_course(item_course, item_course_hr)
-                parent1_copy.get_block().set_schedule_course(curr_course, curr_course_hr)
 
             gene_fitness = GeneFitness(parent1_copy)
             fitness_score = GeneticAlgorithm.fitness_value(gene_fitness)
@@ -494,9 +412,6 @@ class GeneticAlgorithm:
         parent1_copy = copy.copy(parent1)
         parent2_copy = copy.copy(parent2)
 
-        remove_prof_sched = False
-        remove_block_sched = False
-
         if 'cs' in attribute:
             parent1.set_class_slot(parent2_copy.get_class_slot())
             parent2.set_class_slot(parent1_copy.get_class_slot())
@@ -523,120 +438,6 @@ class GeneticAlgorithm:
             parent2_copy.get_professor().get_schedule().remove_sched(p2_prev_day, p2_prev_time_slot)
             parent2.get_block().set_schedule(p2_new_day, p2_new_time_slot)
             parent2.get_professor().set_schedule(p2_new_day, p2_new_time_slot)
-
-            remove_prof_sched = True
-            remove_block_sched = True
-
-        if 'p' in attribute:
-
-            # get the current course and alloted time for parent 1
-            p1_course = parent1.get_course().get_code()
-            p1_course_hour = parent1.get_course().get_hour()
-
-            # get the current course and alloted time for parent 2
-            p2_course = parent2.get_course().get_code()
-            p2_course_hour = parent2.get_course().get_hour()
-
-            p1_prev_time_slot = parent1_copy.get_class_slot_one(2)
-            p1_prev_day = parent1_copy.get_class_slot_one(1)
-            p2_prev_time_slot = parent2_copy.get_class_slot_one(2)
-            p2_prev_day = parent2_copy.get_class_slot_one(1)
-
-            p1_new_time_slot = parent1.get_class_slot_one(2)
-            p1_new_day = parent1.get_class_slot_one(1)
-            p2_new_time_slot = parent2.get_class_slot_one(2)
-            p2_new_day = parent2.get_class_slot_one(1)
-
-            parent1.set_professor(parent2_copy.get_professor())
-            parent2.set_professor(parent1_copy.get_professor())
-
-            if not remove_prof_sched:
-                parent1_copy.get_professor().get_schedule().remove_sched(p1_prev_day, p1_prev_time_slot)
-                parent2_copy.get_professor().get_schedule().remove_sched(p2_prev_day, p2_prev_time_slot)
-
-                parent1.get_professor().set_schedule(p1_new_day, p1_new_time_slot)
-                parent2.get_professor().set_schedule(p2_new_day, p2_new_time_slot)
-            else:
-                p1_curr_time_slot = parent1.get_class_slot_one(2)
-                p1_curr_day = parent1.get_class_slot_one(1)
-                p2_curr_time_slot = parent2.get_class_slot_one(2)
-                p2_curr_day = parent2.get_class_slot_one(1)
-
-                parent1_copy.get_professor().get_schedule().remove_sched(p1_curr_day, p1_curr_time_slot)
-                parent2_copy.get_professor().get_schedule().remove_sched(p2_curr_day, p2_curr_time_slot)
-                parent1.get_professor().set_schedule(p1_curr_day, p1_curr_time_slot)
-                parent2.get_professor().set_schedule(p2_curr_day, p2_curr_time_slot)
-
-            # magpapalit ang course handle ng prof ng p1 at p2
-            parent1_copy.get_professor().remove_schedule_course(p1_course, p1_course_hour)
-            parent1.get_professor().set_schedule_course(p1_course, p1_course_hour)
-            parent2_copy.get_professor().remove_schedule_course(p2_course, p2_course_hour)
-            parent2.get_professor().set_schedule_course(p2_course, p2_course_hour)
-
-        if 'b' in attribute:
-
-            p1_course = parent1.get_course().get_code()
-            p1_course_hour = parent1.get_course().get_hour()
-
-            p2_course = parent2.get_course().get_code()
-            p2_course_hour = parent2.get_course().get_hour()
-
-            p1_prev_time_slot = parent1_copy.get_class_slot_one(2)
-            p1_prev_day = parent1_copy.get_class_slot_one(1)
-            p2_prev_time_slot = parent2_copy.get_class_slot_one(2)
-            p2_prev_day = parent2_copy.get_class_slot_one(1)
-
-            p1_new_time_slot = parent1.get_class_slot_one(2)
-            p1_new_day = parent1.get_class_slot_one(1)
-            p2_new_time_slot = parent2.get_class_slot_one(2)
-            p2_new_day = parent2.get_class_slot_one(1)
-
-            parent1.set_block(parent2_copy.get_block())
-            parent2.set_block(parent1_copy.get_block())
-
-            if not remove_block_sched:
-                parent1_copy.get_block().get_schedule().remove_sched(p1_prev_day, p1_prev_time_slot)
-                parent2_copy.get_block().get_schedule().remove_sched(p2_prev_day, p2_prev_time_slot)
-
-                parent1.get_block().set_schedule(p1_new_day, p1_new_time_slot)
-                parent2.get_block().set_schedule(p2_new_day, p2_new_time_slot)
-            else:
-                p1_curr_time_slot = parent1.get_class_slot_one(2)
-                p1_curr_day = parent1.get_class_slot_one(1)
-                p2_curr_time_slot = parent2.get_class_slot_one(2)
-                p2_curr_day = parent2.get_class_slot_one(1)
-
-                parent1_copy.get_block().get_schedule().remove_sched(p1_curr_day, p1_curr_time_slot)
-                parent2_copy.get_block().get_schedule().remove_sched(p2_curr_day, p2_curr_time_slot)
-                parent1.get_block().set_schedule(p1_curr_day, p1_curr_time_slot)
-                parent2.get_block().set_schedule(p2_curr_day, p2_curr_time_slot)
-
-            # magpapalit ang course handle ng block ng p1 at p2
-            parent1_copy.get_block().remove_schedule_course(p1_course, p1_course_hour)
-            parent1.get_block().set_schedule_course(p1_course, p1_course_hour)
-            parent2_copy.get_block().remove_schedule_course(p2_course, p2_course_hour)
-            parent2.get_block().set_schedule_course(p2_course, p2_course_hour)
-
-        if 'c' in attribute:
-            p1_course = parent1.get_course().get_code()
-            p1_course_hour = parent1.get_course().get_hour()
-
-            p2_course = parent2.get_course().get_code()
-            p2_course_hour = parent2.get_course().get_hour()
-
-            parent1.set_course(parent2_copy.get_course())
-            parent2.set_course(parent1_copy.get_course())
-
-            # magpapalit ang course handle ng block ng p1 at p2
-            parent1.get_block().remove_schedule_course(p1_course, p1_course_hour)
-            parent1.get_block().set_schedule_course(p2_course, p2_course_hour)
-            parent2.get_block().remove_schedule_course(p2_course, p2_course_hour)
-            parent2.get_block().set_schedule_course(p1_course, p1_course_hour)
-
-            parent1.get_professor().remove_schedule_course(p1_course, p1_course_hour)
-            parent1.get_professor().set_schedule_course(p2_course, p2_course_hour)
-            parent2.get_professor().remove_schedule_course(p2_course, p2_course_hour)
-            parent2.get_professor().set_schedule_course(p1_course, p1_course_hour)
 
         parent1_fitness = GeneFitness(parent1)
         parent1_fitness_score = GeneticAlgorithm.fitness_value(parent1_fitness)
@@ -665,109 +466,26 @@ class GeneticAlgorithm:
             self.curr_chromosome.add_gene(parent1)
             self.add_to_new_chromosome(parent2_copy)
         else:
-            # child = self.mutation(parent1)
             self.add_to_new_chromosome(parent1)
-
-
-    def prof_mutation(self):
-
-        if self.chromosome_size != 0:
-
-            child = random.choice(self.curr_chromosome.get_genes())
-            if child.get_assigned_course_to_prof_fitness() == 0:
-                course = child.get_course().get_code()
-                course_hour = child.get_course().get_hour()
-                prev_prof = child.get_professor()
-
-                prev_time_slot = child.get_class_slot_one(2)
-                prev_day = child.get_class_slot_one(1)
-
-                child.set_professor(child.get_course().get_prof())
-
-                prev_prof.get_schedule().remove_sched(prev_day, prev_time_slot)
-                child.get_professor().set_schedule(prev_day, prev_time_slot)
-
-                # change the assigned course
-                prev_prof.remove_schedule_course(course, course_hour)
-                child.get_professor().set_schedule_course(course, course_hour)
-
-                fitness = GeneFitness(child)
-                fitness_score = GeneticAlgorithm.fitness_value(fitness)
-                child.add_fitness_score(fitness_score)
-
-    def block_mutation(self):
-
-        if self.chromosome_size != 0:
-            child = random.choice(self.curr_chromosome.get_genes())
-
-            if child.get_assigned_course_to_block_fitness() == 0:
-                course = child.get_course().get_code()
-                course_hour = child.get_course().get_hour()
-                prev_block = child.get_block()
-
-                prev_time_slot = child.get_class_slot_one(2)
-                prev_day = child.get_class_slot_one(1)
-
-                child.set_block(child.get_course().get_block())
-
-                prev_block.get_schedule().remove_sched(prev_day, prev_time_slot)
-                child.get_block().set_schedule(prev_day, prev_time_slot)
-
-                # magpapalit ang course handle
-                prev_block.remove_schedule_course(course, course_hour)
-                child.get_block().set_schedule_course(course, course_hour)
-
-                fitness = GeneFitness(child)
-                fitness_score = GeneticAlgorithm.fitness_value(fitness)
-                child.add_fitness_score(fitness_score)
-
-    def cs_mutation(self):
-
-        if self.chromosome_size != 0:
-
-            child = random.choice(self.curr_chromosome.get_genes())
-            child_copy = copy.copy(child)
-            prev_time_slot = child_copy.get_class_slot_one(2)
-            prev_day = child_copy.get_class_slot_one(1)
-
-            if len(self.class_slot_population) > 0:
-                if child.get_professor_work_load_fitness() == 0 or child.get_room_availability_fitness() == 0 or child.get_block_availability_fitness() == 0 or child.get_prof_lunch_break_fitness() == 0 or child.get_block_lunch_break_fitness() == 0 or child.get_working_hours_fitness() == 0:
-
-                    random_class_slot = self.class_slot_population.pop(
-                        random.randrange(len(self.class_slot_population)))
-
-                    child_class_slot = child.get_class_slot()
-                    self.class_slot_population.append(child_class_slot)
-
-                    child.set_class_slot(random_class_slot)
-
-                    new_time_slot = child.get_class_slot_one(2)
-                    new_day = child.get_class_slot_one(1)
-
-                    child_copy.get_class_slot_one(0).get_schedule().remove_sched(prev_day, prev_time_slot)
-                    child_copy.get_block().get_schedule().remove_sched(prev_day, prev_time_slot)
-                    child_copy.get_professor().get_schedule().remove_sched(prev_day, prev_time_slot)
-                    child.get_block().set_schedule(new_day, new_time_slot)
-                    child.get_professor().set_schedule(new_day, new_time_slot)
-                    child.get_class_slot_one(0).set_schedule(new_day, new_time_slot)
-
-                    fitness = GeneFitness(child)
-                    fitness_score = GeneticAlgorithm.fitness_value(fitness)
-                    child.add_fitness_score(fitness_score)
 
     def mutation(self, child):
 
-        child_copy = copy.copy(child)
-        prev_time_slot = child_copy.get_class_slot_one(2)
-        prev_day = child_copy.get_class_slot_one(1)
+        found = False
+        curr_fitness = child.get_fitness_score()
+        size = len(self.class_slot_population)
+        count = 0
 
-        if child.get_professor_work_load_fitness() == 0 or child.get_room_availability_fitness() == 0 or child.get_block_availability_fitness() == 0 or child.get_prof_lunch_break_fitness() == 0 or child.get_block_lunch_break_fitness() == 0 or child.get_working_hours_fitness() == 0 or child.get_course_slot_suitability_fitness() == 0 or child.get_room_suitability_fitness() == 0:
+        if len(self.class_slot_population) > 0:
+            while not found:
 
-            if len(self.class_slot_population) > 0:
+                child_copy = copy.copy(child)
+                prev_time_slot = child_copy.get_class_slot_one(2)
+                prev_day = child_copy.get_class_slot_one(1)
+
                 random_class_slot = self.class_slot_population.pop(
                     random.randrange(len(self.class_slot_population)))
 
-                child_class_slot = child.get_class_slot()
+                child_class_slot = child_copy.get_class_slot()
                 self.class_slot_population.append(child_class_slot)
 
                 child.set_class_slot(random_class_slot)
@@ -781,6 +499,17 @@ class GeneticAlgorithm:
                 child.get_block().set_schedule(new_day, new_time_slot)
                 child.get_professor().set_schedule(new_day, new_time_slot)
                 child.get_class_slot_one(0).set_schedule(new_day, new_time_slot)
+
+                gene_fitness = GeneFitness(child)
+                fitness_score = GeneticAlgorithm.fitness_value(gene_fitness)
+
+                if fitness_score == 1 or fitness_score > curr_fitness:
+                    found = True
+
+                if count == size:
+                    found = True
+
+                count += 1
 
         return child
 
@@ -1741,8 +1470,8 @@ def generate_regular_subjects(df):
         Data.add_lec_course(subj)
         REG_COURSE.append(subj.get_code())
 
-def generate_block_list(df):
 
+def generate_block_list(df):
     block_list = []
 
     # iterate through each row and column to access cell values
@@ -1803,53 +1532,32 @@ def generate_professor_list(df):
 
 if __name__ == '__main__':
     meetingTime = ["07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
-    day = ["M", "T", "W", "Th", "F"]
-
+    day = ["M", "T", "W", "Th", "F", "S"]
 
     # read the csv file
     room_df = pd.read_csv('rooms.csv')
     generate_class_room(room_df)
 
     # read the csv file
-    lab_df = pd.read_csv('lab_course.csv')
+    lab_df = pd.read_csv('Dataset 3/D3lab_course.csv')
     generate_lab_subjects(lab_df)
 
     # read the csv file
-    reg_df = pd.read_csv('reg_course.csv')
+    reg_df = pd.read_csv('Dataset 3/D3reg_course.csv')
     generate_regular_subjects(reg_df)
 
     # read the csv file
-    block_df = pd.read_csv('blocks_data.csv')
+    block_df = pd.read_csv('Dataset 3/D3block_data.csv')
     generate_block_list(block_df)
 
     # read the csv file
-    prof_df = pd.read_csv('professors.csv')
+    prof_df = pd.read_csv('Dataset 3/dataset3_professors.csv')
     generate_professor_list(prof_df)
 
-    # Some code here
-    start_time = time.time()
     population = Population()
     population.initialize_population(meetingTime, day)
-    end_time = time.time()
-
-    elapsed_time = end_time - start_time
-    print("---------------------------------------------------------------------")
-    print("Class-slot population size : ", len(population.get_class_slots()))
-    print("Professor population size : ", len(population.get_professors()))
-    print("Block population size : ", len(population.get_blocks()))
-    print("Course population size : ", len(population.get_courses()))
-    print("---------------------------------------------------------------------")
-    print(f"Population initialization elapsed time: {elapsed_time} seconds")
-
-    start_time = time.time()
     genetic_algo = GeneticAlgorithm()
     genetic_algo.encode_chromosome(population)
-    end_time = time.time()
-
-    elapsed_time = end_time - start_time
-
-
-    print(f"Encoding Chromosome elapsed time: {elapsed_time} seconds")
 
     count = 0
     best_generation_fitness_score = 0
@@ -1858,12 +1566,9 @@ if __name__ == '__main__':
     not_perfect_schedule = True
     generation = 0
 
-
-    start_time = time.time()
     while not_perfect_schedule:
-        g_start_time = time.time()
-
         chromosome_fit = genetic_algo.calculate_fit()
+
         new_chromosome = True
         MEMOIZATION = False
         generation = generation + 1
@@ -1875,17 +1580,13 @@ if __name__ == '__main__':
             best_generation_fitness_score = chromosome_fit
             best_generation_index = generation
 
-        # print("Generation " + str(count) + " fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
-        # print("Generation Fitness score : ", genetic_algo.curr_chromosome.get_fitness_value())
         count = count + 1
-        if chromosome_fit == 1 or generation == 1200:
-            end_time = time.time()
-            elapsed_time = end_time - start_time
+        if chromosome_fit == 1:
+
+            print("fitness score")
 
             best_chromosome = Chromosome()
             best_chromosome.add_all_genes(best)
-
-            print(f"Finding Best Schedule elapsed time: {elapsed_time} seconds")
 
             print("---------------------------------------------------------------------")
             print("Solution found at generation", best_generation_index)
@@ -1893,7 +1594,6 @@ if __name__ == '__main__':
             print("---------------------------------------------------------------------\n\n")
 
             # delete all sched
-
             for professor in PROF_LIST:
                 professor.get_schedule().clear_all_sched()
             for r in ROOM_LIST:
@@ -1966,13 +1666,9 @@ if __name__ == '__main__':
                     elif parent2 == 0 and attribute == 0:
                         child = genetic_algo.mutation(parent1)
                         genetic_algo.add_to_new_chromosome(child)
-                        #genetic_algo.block_mutation()
-                        #genetic_algo.prof_mutation()
                     else:
                         genetic_algo.uniform_crossover(parent1, attribute, parent2)
 
-                        #genetic_algo.block_mutation()
-                        #genetic_algo.prof_mutation()
                 else:
                     print("PARENT 1 IS NONE")
 
@@ -1985,9 +1681,3 @@ if __name__ == '__main__':
 
                     MEMOIZATION = True
                     new_chromosome = False
-
-                    g_end_time = time.time()
-                    g_elapsed_time = g_end_time - g_start_time
-                    # print(f"Elapsed time: {g_elapsed_time} seconds")
-
-
